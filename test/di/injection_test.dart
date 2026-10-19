@@ -1,20 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:momentum/core/navigation/placeholder_onboarding.dart';
+import 'package:momentum/core/database/daos/habit_logs_dao.dart';
+import 'package:momentum/core/database/daos/user_data_dao.dart';
+import 'package:momentum/core/network/momentum_service.dart';
 import 'package:momentum/di/injection.dart';
+import 'package:momentum/domain/repository/demo_repository.dart';
+import 'package:momentum/domain/repository/settings_repository.dart';
+import 'package:momentum/features/welcome/cubit/welcome_cubit.dart';
+
+import '../helpers/test_dependencies.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   tearDown(getIt.reset);
 
-  // A smoke test of the real composition root. A dependency injectable can't
-  // resolve only fails when its type is first resolved, at runtime; resolving
-  // the top of each graph here catches it in CI. Every new Cubit, repository
-  // and service belongs here.
-  test('the real container resolves the app-wide singletons', () {
-    configureDependencies();
+  // A smoke test of the real composition root (with the database in memory).
+  // A dependency injectable can't resolve only fails when its type is first
+  // resolved, at runtime; resolving the top of each graph here catches it in
+  // CI. Every new Cubit, repository and service belongs here.
+  test('the real container resolves every Cubit, repository and DAO', () async {
+    await configureTestDependencies();
 
-    expect(
-      getIt<PlaceholderOnboarding>(),
-      same(getIt<PlaceholderOnboarding>()),
-    );
+    expect(getIt<SettingsRepository>(), same(getIt<SettingsRepository>()));
+    expect(getIt<MomentumService>(), isNotNull);
+    expect(getIt<UserDataDao>(), isNotNull);
+    expect(getIt<HabitLogsDao>(), isNotNull);
+    expect(getIt<DemoRepository>(), isNotNull);
+    await getIt<WelcomeCubit>().close();
   });
 }

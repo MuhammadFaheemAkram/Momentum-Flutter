@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:momentum/core/network/network_simulator.dart';
 import 'package:momentum/di/injection.dart';
 
 import '../helpers/app_harness.dart';
@@ -42,6 +43,14 @@ void main() {
 
       testWidgets('Welcome', (tester) async {
         await open(tester, at: '/welcome', onboarded: false);
+        await expectAccessible(tester);
+      });
+
+      testWidgets('Welcome, after the demo failed to load', (tester) async {
+        await open(tester, at: '/welcome', onboarded: false);
+        getIt<NetworkSimulator>().failRequests = true;
+        await tester.tap(find.text('Explore with demo data'));
+        await tester.pumpUntilFound(find.text('Try again'));
         await expectAccessible(tester);
       });
 

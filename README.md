@@ -41,8 +41,8 @@ Momentum is built in **strict, reviewable phases**. Each phase ends with:
 | Phase | Scope | Status |
 |------:|-------|:------:|
 | 1 | Foundation: FVM project, design system base with the habit palette, typed routes with a first-launch gate, 5-tab shell with a navigation drawer, CI | ✅ Done |
-| 2 | Data models, the drift store, the fake service and the demo; Welcome | ⏳ Next |
-| 3 | The schedule engine, Today, Habits, the habit form and Habit detail | |
+| 2 | Data models, the drift store with its constraints, the fake service and the demo; Welcome for real | ✅ Done |
+| 3 | The schedule engine, Today, Habits, the habit form and Habit detail | ⏳ Next |
 | 4 | Goals and routines | |
 | 5 | Achievements, analytics and search | |
 | 6 | Notifications, background tasks and settings | |
@@ -79,9 +79,14 @@ Packages arrive in the phase that first needs them.
 | Navigation | `go_router` + `go_router_builder` (typed routes, `StatefulShellRoute`, a first-launch `redirect`) | 1 |
 | Dependency injection | `get_it` + `injectable` (a code-generated composition root) | 1 |
 | Lints / CI | `flutter_lints` + strict analyzer modes; GitHub Actions | 1 |
-| Testing | `flutter_test` | 1 |
+| State | `flutter_bloc` (Cubits; one Bloc for search, later) | 2 |
+| Models | `freezed` (sealed unions for schedules and goal scopes) + `json_serializable` (checked DTOs) | 2 |
+| Database | `drift` + `drift_flutter`: SQLite with CHECK constraints, foreign keys and an exported schema; shared across isolates | 2 |
+| Preferences | `shared_preferences` (`SharedPreferencesWithCache`, loaded before the first frame) | 2 |
+| Time | `clock` (a fixed clock in tests); `CalendarDate` and `TimeOfDayValue` extension types | 2 |
+| Testing | `flutter_test`, `bloc_test`, `mocktail`, `fake_async` | 1–2 |
 
-Planned: `flutter_bloc`, `freezed`, `json_serializable`, `drift` (shared across isolates), `shared_preferences`, `clock`, `intl` (Phase 2); `bloc_concurrency`, `stream_transform`, `fl_chart` (Phase 3); `flutter_local_notifications`, `timezone`, `workmanager`, `dynamic_color`, `package_info_plus` (Phase 6).
+Planned: `bloc_concurrency`, `stream_transform`, `intl`, `fl_chart` (Phase 3); `flutter_local_notifications`, `timezone`, `workmanager`, `dynamic_color`, `package_info_plus` (Phase 6).
 
 ---
 
@@ -92,12 +97,29 @@ A clean, layered architecture with a one-directional data flow:
 ```
 lib/
 ├── app/        → root widget (MaterialApp.router, themes)
-├── core/       → design system, navigation, (later) the database, the fake service, notifications, background work
-├── data/       → repository implementations + mappers               (Phase 2)
-├── domain/     → models, the pure habit engine, contracts, use cases (Phase 2)
+├── core/       → design system, navigation, the database, the fake service, storage; (later) notifications, background work
+├── data/       → repository implementations + mappers (rows ⇄ models, the demo DTO → models)
+├── domain/     → models, contracts, use cases; (Phase 3) the pure habit engine
 ├── features/   → one folder per screen (Page + View + Cubit/Bloc)
 └── di/         → composition root (get_it + injectable)
 ```
+
+**Data flow:**
+
+```
+Welcome ── Explore with demo data ──▶ WelcomeCubit ──▶ LoadDemoUseCase
+                                                         │
+          FakeMomentumService (600 ms) ──▶ DemoDto ──▶ toUserData(now)   checked: ids, limits, schedules, days
+                                                         │
+                                       UserData ──▶ rows ──▶ UserDataDao.replaceAll   one transaction
+                                                         │
+                                       SettingsRepository.setOnboarded ──▶ the router's gate ──▶ Today
+```
+
+- **drift is the source of truth.** Everything the user owns lives in seven tables, and the fake service only delivers the demo.
+- **Invalid rows can't exist:** CHECK constraints (a log is a skip *or* a count; each schedule has exactly its columns; targets in range), primary keys (one log per habit per day, one unlock per badge) and cascades (deleting a habit takes its logs and goals).
+- **Derived, never stored:** no column holds a streak, a rate, a goal's count or a score; they are calculated from the logs.
+- **The demo moves with today**, anchored to ISO weeks so a Mon / Wed / Fri habit stays on its days.
 
 **Navigation:**
 
@@ -131,16 +153,24 @@ Momentum/
 ├── .fvmrc                          # pinned Flutter version (3.47.6)
 ├── .github/workflows/flutter-ci.yml
 ├── analysis_options.yaml           # lints + strict analyzer modes
-├── build.yaml                      # lint-free generated files
+├── build.yaml                      # lint-free generated files; drift options
+├── assets/json/demo.json           # the fake service's demo
+├── drift_schemas/                  # every exported schema version (v1)
 ├── lib/
-│   ├── main.dart                   # binding → configureDependencies() → runApp
+│   ├── main.dart                   # binding → await configureDependencies() → runApp
 │   ├── app/                        # MomentumApp: themes and the router
 │   ├── core/
 │   │   ├── design_system/          # theme/ (AppTheme, AppColors, HabitPalette, tokens), widgets/ (state views, SectionHeader), large_text
-│   │   └── navigation/             # app_routes (+ .g.dart), app_router, first_launch_redirect, fallback Close button
+│   │   ├── common/                 # Result, AppException
+│   │   ├── database/               # AppDatabase, tables/, daos/, converters
+│   │   ├── navigation/             # app_routes (+ .g.dart), app_router, first_launch_redirect, stream_listenable, fallback Close button
+│   │   ├── network/                # MomentumService (fake), dto/, NetworkSimulator, AssetJsonLoader
+│   │   └── storage/                # SettingsLocalDataSource
+│   ├── data/                       # mapper/ (rows ⇄ models, the demo), repository/ (demo, settings)
+│   ├── domain/                     # model/ (Habit, HabitSchedule, HabitLog, Routine, Goal, …), repository/, usecase/
 │   ├── features/                   # welcome, shell (tabs + drawer), today, habits, habit_form, habit_detail,
 │   │                               # routines, routine_editor, goals, analytics, achievements, search, settings, about
-│   └── di/                         # injection.dart (+ .config.dart)
+│   └── di/                         # injection.dart (+ .config.dart), app_module.dart
 └── test/                           # mirrors lib/, plus app/ (the accessibility tour) and helpers/
 ```
 
@@ -175,11 +205,20 @@ fvm dart format --output=none --set-exit-if-changed .
 fvm flutter test
 ```
 
-**121 tests** after Phase 1:
+**224 tests** after Phase 2:
+
+| Area | Tests | What they cover |
+|---|---:|---|
+| `domain/` | 28 | `CalendarDate` (ISO weeks, months, DST-free day counts), `TimeOfDayValue`, the models' invariants |
+| `data/` | 38 | the demo mapper (week-anchored days, today, every refusal), the shipped demo as of every weekday, a round trip of every field through the database, the demo and settings repositories |
+| `core/` | 107 | the schema's constraints and cascades, the log upserts (+1, skip, undo), atomic replacement; the fake service; navigation; the design system and its contrast |
+| `features/`, `di/` | 14 | the Welcome Cubit on the real data stack, its view, the drawer, the composition root |
+| `app/` | 37 | first launch end to end (demo, offline and Try again, start empty), and the accessibility tour |
+
 - **Navigation:** every rule of the first-launch gate; typed locations; the app on its real DI graph (first launch, each tab, the drawer over every tab, each drawer screen and Back, Search from the app bars, the habit form from both "New habit" buttons and over its habit, the routine editor, deep links with a Close button, an unknown location).
 - **Design system:** the themes, and WCAG AA contrast of every status color (done, skipped, missed, streak) on the page, cards and filled fields, and of all eight habit colors with their text, in both themes.
-- **The drawer:** its order, the selected tab, where each item leads, and the tab bar's short label for Achievements.
-- **The accessibility tour:** Welcome, the drawer and every screen, in light and dark at 200 % text: no overflow, tap targets ≥ 48 × 48, labels, contrast. The tab labels keep their size at 300 % (a long press shows them, with the full name for Badges).
+- **The accessibility tour:** Welcome (also after a failed demo), the drawer and every screen, in light and dark at 200 % text: no overflow, tap targets ≥ 48 × 48, labels, contrast. The tab labels keep their size at 300 % (a long press shows them, with the full name for Badges).
+- **Mutation checks:** six behaviours were broken on purpose (the log's CHECK, replaceAll's transaction, the +1 upsert, onboarding only after a loaded demo, the week-anchored demo days, the weekday bitmask), and each made a test fail.
 
 CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every pull request. It installs the FVM-pinned Flutter, checks that the committed generated code is up to date and complete, then runs format, analyze and test.
 
@@ -207,6 +246,7 @@ CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every p
 ## 📚 Documentation
 
 - [Phase 1 — Foundation](docs/PHASE_1_SUMMARY.md)
+- [Phase 2 — Data layer](docs/PHASE_2_SUMMARY.md)
 
 ---
 
