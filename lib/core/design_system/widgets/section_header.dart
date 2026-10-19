@@ -23,6 +23,9 @@ class SectionHeader extends StatelessWidget {
         children: [
           Expanded(
             child: Semantics(
+              // Its own node: a heading flag on a merged node would make
+              // everything around it a heading too.
+              container: true,
               header: true,
               child: Text(
                 title,

@@ -147,7 +147,8 @@ void main() {
         await pumpMomentum(tester);
         await tester.tapAndSettle(destination(tab));
 
-        await tester.tapAndSettle(find.text('New habit'));
+        // The FAB (an empty tab has a New habit button of its own too).
+        await tester.tapAndSettle(find.byType(FloatingActionButton));
         expect(appBarTitled('New habit'), findsOneWidget);
         expect(find.byType(NavigationBar), findsNothing);
 

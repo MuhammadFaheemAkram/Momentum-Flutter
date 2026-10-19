@@ -1,6 +1,8 @@
 /// One import for the whole design system: theme, tokens and shared widgets.
 library;
 
+export 'package:momentum/core/design_system/formatting/date_labels.dart';
+export 'package:momentum/core/design_system/formatting/labels.dart';
 export 'package:momentum/core/design_system/large_text.dart';
 export 'package:momentum/core/design_system/theme/app_colors.dart';
 export 'package:momentum/core/design_system/theme/app_icon_size.dart';
@@ -8,7 +10,25 @@ export 'package:momentum/core/design_system/theme/app_radius.dart';
 export 'package:momentum/core/design_system/theme/app_spacing.dart';
 export 'package:momentum/core/design_system/theme/app_theme.dart';
 export 'package:momentum/core/design_system/theme/habit_palette.dart';
+export 'package:momentum/core/design_system/theme/habit_visuals.dart';
+export 'package:momentum/core/design_system/widgets/app_search_field.dart';
+export 'package:momentum/core/design_system/widgets/app_sheet.dart';
+export 'package:momentum/core/design_system/widgets/calendar_heatmap.dart';
+export 'package:momentum/core/design_system/widgets/chart_axis_label.dart';
+export 'package:momentum/core/design_system/widgets/completion_ring.dart';
+export 'package:momentum/core/design_system/widgets/confirm_dialog.dart';
+export 'package:momentum/core/design_system/widgets/count_stepper.dart';
 export 'package:momentum/core/design_system/widgets/empty_state_view.dart';
 export 'package:momentum/core/design_system/widgets/error_view.dart';
+export 'package:momentum/core/design_system/widgets/filter_chip_group.dart';
+export 'package:momentum/core/design_system/widgets/habit_avatar.dart';
+export 'package:momentum/core/design_system/widgets/habit_card.dart';
+export 'package:momentum/core/design_system/widgets/habit_pickers.dart';
 export 'package:momentum/core/design_system/widgets/loading_view.dart';
 export 'package:momentum/core/design_system/widgets/section_header.dart';
+export 'package:momentum/core/design_system/widgets/segmented_choice.dart';
+export 'package:momentum/core/design_system/widgets/stat_tile.dart';
+export 'package:momentum/core/design_system/widgets/streak_banner.dart';
+export 'package:momentum/core/design_system/widgets/time_picker.dart';
+export 'package:momentum/core/design_system/widgets/week_strip.dart';
+export 'package:momentum/core/design_system/widgets/weekly_bars_chart.dart';

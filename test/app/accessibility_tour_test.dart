@@ -2,6 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:momentum/core/network/network_simulator.dart';
 import 'package:momentum/di/injection.dart';
+import 'package:momentum/domain/model/calendar_date.dart';
+import 'package:momentum/domain/model/habit.dart';
+import 'package:momentum/domain/model/habit_draft.dart';
+import 'package:momentum/domain/model/habit_enums.dart';
+import 'package:momentum/domain/repository/habit_repository.dart';
 
 import '../helpers/app_harness.dart';
 
@@ -18,12 +23,20 @@ void main() {
         WidgetTester tester, {
         required String at,
         bool onboarded = true,
+        bool withDemo = false,
+        Future<void> Function()? beforeLaunch,
       }) async {
         tester.platformDispatcher
           ..textScaleFactorTestValue = 2
           ..platformBrightnessTestValue = brightness;
         addTearDown(tester.platformDispatcher.clearAllTestValues);
-        await pumpMomentum(tester, onboarded: onboarded, initialLocation: at);
+        await pumpMomentum(
+          tester,
+          onboarded: onboarded,
+          withDemo: withDemo,
+          initialLocation: at,
+          beforeLaunch: beforeLaunch,
+        );
         // Phone width, but tall enough to lay out every item of a long list:
         // the checks below see only what is built.
         tester.view.physicalSize = const Size(390 * 3, 6000 * 3);
@@ -61,15 +74,76 @@ void main() {
         await expectAccessible(tester);
       });
 
+      // With the demo: real habits, streaks, counts and a full calendar.
       for (final (name, location) in [
         ('Today', '/today'),
         ('Habits', '/habits'),
+        ('Habit detail (a counted habit)', '/habits/habit_water'),
+        ('Habit detail (a weekly habit)', '/habits/habit_spanish'),
+        ('Edit habit', '/habits/habit_run/edit'),
+      ]) {
+        testWidgets(name, (tester) async {
+          await open(tester, at: location, withDemo: true);
+          await expectAccessible(tester);
+        });
+      }
+
+      testWidgets('Today, with the habits not due expanded', (tester) async {
+        // Every demo habit is due on a Wednesday: add one that isn't.
+        await open(
+          tester,
+          at: '/today',
+          withDemo: true,
+          beforeLaunch: () => tester.runAsync(
+            () => getIt<HabitRepository>().createHabit(
+              HabitDraft(
+                title: 'Gym',
+                category: HabitCategory.fitness,
+                color: HabitColor.orange,
+                icon: HabitIcon.fitness,
+                schedule: const HabitSchedule.onWeekdays({2}),
+                startDate: CalendarDate(2026, 10, 1),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.textContaining('Not due today ('));
+        await tester.pumpAndSettle();
+        await expectAccessible(tester);
+      });
+
+      testWidgets('Habits, archived shown', (tester) async {
+        await open(tester, at: '/habits', withDemo: true);
+        await tester.tap(find.byTooltip('More for Plan tomorrow'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Archive'));
+        await tester.pumpUntilFound(find.textContaining('Show archived'));
+        await tester.tap(find.textContaining('Show archived'));
+        await tester.pumpAndSettle();
+        expect(find.text('Archived'), findsOneWidget);
+        await expectAccessible(tester);
+      });
+
+      testWidgets('New habit, with its errors and every schedule choice', (
+        tester,
+      ) async {
+        await open(tester, at: '/habits/new');
+        await tester.tap(find.text('Some days'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+        expect(find.text('Give the habit a name'), findsOneWidget);
+        await expectAccessible(tester);
+      });
+
+      // Empty, or nothing to show yet.
+      for (final (name, location) in [
+        ('Today, empty', '/today'),
+        ('Habits, empty', '/habits'),
+        ('Habit detail, not found', '/habits/h1'),
         ('Analytics', '/analytics'),
         ('Achievements', '/achievements'),
         ('Settings', '/settings'),
-        ('New habit', '/habits/new'),
-        ('Habit detail', '/habits/h1'),
-        ('Edit habit', '/habits/h1/edit'),
         ('Routines', '/routines'),
         ('New routine', '/routines/new'),
         ('Goals', '/goals'),

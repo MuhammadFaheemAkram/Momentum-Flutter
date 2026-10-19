@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
 import 'package:momentum/core/database/app_database.dart';
 import 'package:momentum/core/database/daos/habit_logs_dao.dart';
+import 'package:momentum/core/database/daos/habits_dao.dart';
 import 'package:momentum/core/database/daos/user_data_dao.dart';
 import 'package:momentum/core/storage/settings_local_data_source.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,6 +28,9 @@ abstract class AppModule {
 
   @lazySingleton
   UserDataDao userDataDao(AppDatabase database) => database.userDataDao;
+
+  @lazySingleton
+  HabitsDao habitsDao(AppDatabase database) => database.habitsDao;
 
   @lazySingleton
   HabitLogsDao habitLogsDao(AppDatabase database) => database.habitLogsDao;

@@ -12,12 +12,16 @@ import 'test_dependencies.dart';
 /// first launch, optionally on a deep link, optionally with the demo loaded
 /// ([withDemo]), as of [demoNow]. [beforeLaunch] runs once the graph exists
 /// and before the first frame. Pair it with `tearDown(getIt.reset)`.
+///
+/// [tall] lays the screen out on a phone's width but tall enough to build
+/// every item of a long list.
 Future<void> pumpMomentum(
   WidgetTester tester, {
   bool onboarded = true,
   bool withDemo = false,
   String? initialLocation,
   Future<void> Function()? beforeLaunch,
+  bool tall = false,
 }) async {
   await configureTestDependencies(
     preferences: onboarded ? onboardedPreferences : const {},
@@ -29,7 +33,7 @@ Future<void> pumpMomentum(
     await tester.runAsync(() => getIt<DemoRepository>().loadDemo());
   }
   await beforeLaunch?.call();
-  tester.usePhoneSurface();
+  tall ? tester.useTallPhoneSurface() : tester.usePhoneSurface();
   await tester.pumpWidget(MomentumApp(initialLocation: initialLocation));
   await tester.pumpAndSettle();
 }

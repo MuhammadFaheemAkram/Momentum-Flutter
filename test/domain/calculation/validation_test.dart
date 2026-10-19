@@ -1,0 +1,56 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:momentum/domain/calculation/validation.dart';
+import 'package:momentum/domain/model/habit.dart';
+import 'package:momentum/domain/model/habit_draft.dart';
+import 'package:momentum/domain/model/habit_enums.dart';
+
+import '../../helpers/habit_builders.dart';
+
+void main() {
+  test('a name is required, up to 60 characters as people count them', () {
+    expect(habitTitleError(''), isNotNull);
+    expect(habitTitleError('   '), isNotNull);
+    expect(habitTitleError('a' * 60), isNull);
+    expect(habitTitleError('a' * 61), isNotNull);
+    // Sixty runners: one character each, though each is five UTF-16 units.
+    expect(habitTitleError('🏃‍♀️' * 60), isNull);
+  });
+
+  test('a description is optional, up to 280 characters', () {
+    expect(habitDescriptionError(''), isNull);
+    expect(habitDescriptionError('a' * 280), isNull);
+    expect(habitDescriptionError('a' * 281), isNotNull);
+  });
+
+  test('a schedule needs a day, or one to six times a week', () {
+    expect(scheduleError(const HabitSchedule.daily()), isNull);
+    expect(scheduleError(const HabitSchedule.onWeekdays({})), isNotNull);
+    expect(scheduleError(const HabitSchedule.onWeekdays({0})), isNotNull);
+    expect(scheduleError(const HabitSchedule.onWeekdays({7})), isNull);
+    expect(timesPerWeekError(0), isNotNull);
+    expect(timesPerWeekError(6), isNull);
+    expect(timesPerWeekError(7), isNotNull);
+  });
+
+  test('a daily target is 1–20', () {
+    expect(dailyTargetError(0), isNotNull);
+    expect(dailyTargetError(1), isNull);
+    expect(dailyTargetError(20), isNull);
+    expect(dailyTargetError(21), isNotNull);
+  });
+
+  test('a draft reports its first problem, or none', () {
+    final draft = HabitDraft(
+      title: 'Read',
+      category: HabitCategory.reading,
+      color: HabitColor.green,
+      icon: HabitIcon.book,
+      schedule: const HabitSchedule.daily(),
+      startDate: today,
+    );
+
+    expect(habitDraftError(draft), isNull);
+    expect(habitDraftError(draft.copyWith(title: '')), 'Give the habit a name');
+    expect(habitDraftError(draft.copyWith(dailyTarget: 0)), isNotNull);
+  });
+}

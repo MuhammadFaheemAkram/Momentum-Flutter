@@ -95,6 +95,9 @@ class AppNavigationDrawer extends StatelessWidget {
                 AppSpacing.small,
               ),
               child: Semantics(
+                // Its own node: a heading flag on a merged node would make
+                // everything around it a heading too.
+                container: true,
                 header: true,
                 child: Text('Momentum', style: theme.textTheme.titleLarge),
               ),

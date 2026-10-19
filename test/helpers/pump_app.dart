@@ -23,4 +23,13 @@ extension PumpApp on WidgetTester {
       ..devicePixelRatio = 3;
     addTearDown(view.reset);
   }
+
+  /// A phone's width, tall enough to build every item of a long list (a
+  /// `ListView` builds only what fits).
+  void useTallPhoneSurface() {
+    view
+      ..physicalSize = const Size(1170, 3 * 3000)
+      ..devicePixelRatio = 3;
+    addTearDown(view.reset);
+  }
 }

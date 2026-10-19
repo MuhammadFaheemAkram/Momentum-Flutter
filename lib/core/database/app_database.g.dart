@@ -2929,6 +2929,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE INDEX goals_by_habit ON goals (habit_id)',
   );
   late final UserDataDao userDataDao = UserDataDao(this as AppDatabase);
+  late final HabitsDao habitsDao = HabitsDao(this as AppDatabase);
   late final HabitLogsDao habitLogsDao = HabitLogsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>

@@ -42,8 +42,8 @@ Momentum is built in **strict, reviewable phases**. Each phase ends with:
 |------:|-------|:------:|
 | 1 | Foundation: FVM project, design system base with the habit palette, typed routes with a first-launch gate, 5-tab shell with a navigation drawer, CI | ✅ Done |
 | 2 | Data models, the drift store with its constraints, the fake service and the demo; Welcome for real | ✅ Done |
-| 3 | The schedule engine, Today, Habits, the habit form and Habit detail | ⏳ Next |
-| 4 | Goals and routines | |
+| 3 | The schedule engine (due days, streaks, perfect days, rates), Today, Habits, the habit form and Habit detail with a calendar you can backfill | ✅ Done |
+| 4 | Goals and routines | ⏳ Next |
 | 5 | Achievements, analytics and search | |
 | 6 | Notifications, background tasks and settings | |
 | 7 | Open-source polish and final docs | |
@@ -84,9 +84,13 @@ Packages arrive in the phase that first needs them.
 | Database | `drift` + `drift_flutter`: SQLite with CHECK constraints, foreign keys and an exported schema; shared across isolates | 2 |
 | Preferences | `shared_preferences` (`SharedPreferencesWithCache`, loaded before the first frame) | 2 |
 | Time | `clock` (a fixed clock in tests); `CalendarDate` and `TimeOfDayValue` extension types | 2 |
+| Streams | `stream_transform` (`combineLatest`: the clock, habits and logs into one live view) | 3 |
+| Charts | `fl_chart` (weekly bars, each with a written summary); the calendar heatmap is built from widgets | 3 |
+| Text and time | `intl` (dates, 12- or 24-hour times as the device has them); `characters` (lengths as people count them) | 3 |
+| iOS touches | `cupertino_ui`: the time wheel and alerts on iOS | 3 |
 | Testing | `flutter_test`, `bloc_test`, `mocktail`, `fake_async` | 1–2 |
 
-Planned: `bloc_concurrency`, `stream_transform`, `intl`, `fl_chart` (Phase 3); `flutter_local_notifications`, `timezone`, `workmanager`, `dynamic_color`, `package_info_plus` (Phase 6).
+Planned: `bloc_concurrency` (Phase 5, search); `flutter_local_notifications`, `timezone`, `workmanager`, `dynamic_color`, `package_info_plus` (Phase 6).
 
 ---
 
@@ -99,7 +103,7 @@ lib/
 ├── app/        → root widget (MaterialApp.router, themes)
 ├── core/       → design system, navigation, the database, the fake service, storage; (later) notifications, background work
 ├── data/       → repository implementations + mappers (rows ⇄ models, the demo DTO → models)
-├── domain/     → models, contracts, use cases; (Phase 3) the pure habit engine
+├── domain/     → models, the pure habit engine (calculation/), contracts, use cases
 ├── features/   → one folder per screen (Page + View + Cubit/Bloc)
 └── di/         → composition root (get_it + injectable)
 ```
@@ -120,6 +124,19 @@ Welcome ── Explore with demo data ──▶ WelcomeCubit ──▶ LoadDemoU
 - **Invalid rows can't exist:** CHECK constraints (a log is a skip *or* a count; each schedule has exactly its columns; targets in range), primary keys (one log per habit per day, one unlock per badge) and cascades (deleting a habit takes its logs and goals).
 - **Derived, never stored:** no column holds a streak, a rate, a goal's count or a score; they are calculated from the logs.
 - **The demo moves with today**, anchored to ISO weeks so a Mon / Wed / Fri habit stays on its days.
+
+**The habit engine** (`domain/calculation/`, pure Dart, 67 tests):
+
+```
+habits + logs + today ──▶ HabitHistory ──▶ isDue · stateOn · weekOutcome
+                                ├──▶ habitStreak      days, or ISO weeks for N× a week
+                                ├──▶ perfectDayStreak nothing due missed, something done
+                                ├──▶ completionRate   done ÷ (due − skipped)
+                                └──▶ Today · Habits · Habit detail (built again on every change, and at midnight)
+```
+
+- **Fixed days** (daily, on weekdays) are judged per day: a due day not done breaks the streak; days not due and skipped days pass over it; today counts once done and never breaks it.
+- **Times a week** is judged per ISO week: the week has N slots, a skip uses one, and the streak counts weeks that met their target. A weekly habit's empty day is never a "miss".
 
 **Navigation:**
 
@@ -161,14 +178,14 @@ Momentum/
 │   ├── app/                        # MomentumApp: themes and the router
 │   ├── core/
 │   │   ├── design_system/          # theme/ (AppTheme, AppColors, HabitPalette, tokens), widgets/ (state views, SectionHeader), large_text
-│   │   ├── common/                 # Result, AppException
+│   │   ├── common/                 # Result, AppException, guardWrite, IdGenerator, CalendarClock
 │   │   ├── database/               # AppDatabase, tables/, daos/, converters
 │   │   ├── navigation/             # app_routes (+ .g.dart), app_router, first_launch_redirect, stream_listenable, fallback Close button
 │   │   ├── network/                # MomentumService (fake), dto/, NetworkSimulator, AssetJsonLoader
 │   │   └── storage/                # SettingsLocalDataSource
-│   ├── data/                       # mapper/ (rows ⇄ models, the demo), repository/ (demo, settings)
-│   ├── domain/                     # model/ (Habit, HabitSchedule, HabitLog, Routine, Goal, …), repository/, usecase/
-│   ├── features/                   # welcome, shell (tabs + drawer), today, habits, habit_form, habit_detail,
+│   ├── data/                       # mapper/ (rows ⇄ models, the demo), repository/ (habits, logs, demo, settings)
+│   ├── domain/                     # model/ (Habit, HabitSchedule, HabitLog, …, read models), calculation/ (the engine, validation), repository/, usecase/
+│   ├── features/                   # welcome, shell (tabs + drawer), today, habits, habit_actions (shared), habit_form, habit_detail,
 │   │                               # routines, routine_editor, goals, analytics, achievements, search, settings, about
 │   └── di/                         # injection.dart (+ .config.dart), app_module.dart
 └── test/                           # mirrors lib/, plus app/ (the accessibility tour) and helpers/
@@ -205,20 +222,27 @@ fvm dart format --output=none --set-exit-if-changed .
 fvm flutter test
 ```
 
-**224 tests** after Phase 2:
+**398 tests** after Phase 3:
 
 | Area | Tests | What they cover |
 |---|---:|---|
-| `domain/` | 28 | `CalendarDate` (ISO weeks, months, DST-free day counts), `TimeOfDayValue`, the models' invariants |
-| `data/` | 38 | the demo mapper (week-anchored days, today, every refusal), the shipped demo as of every weekday, a round trip of every field through the database, the demo and settings repositories |
-| `core/` | 107 | the schema's constraints and cascades, the log upserts (+1, skip, undo), atomic replacement; the fake service; navigation; the design system and its contrast |
-| `features/`, `di/` | 14 | the Welcome Cubit on the real data stack, its view, the drawer, the composition root |
-| `app/` | 37 | first launch end to end (demo, offline and Try again, start empty), and the accessibility tour |
+| `domain/` | 106 | the engine: `isDue` for every schedule, every streak edge (skips, days off, today pending, partial days, month and year ends, weekly targets, a first week part-way through), perfect days, the rate and the week strip; validation; the use cases' rules (archived, before the start, the 30-day backfill window); `CalendarDate`, `TimeOfDayValue`, the models |
+| `data/` | 43 | the demo mapper, the shipped demo as of every weekday, a round trip of every field through the database, the habit, demo and settings repositories |
+| `core/` | 130 | the schema's constraints and cascades, the habit and log DAOs (an update never cascades), the midnight clock, the fake service, navigation, the design system (contrast, the habit card, the calendar's semantics) |
+| `features/`, `di/` | 62 | the Today, Habits, form, detail and Welcome Cubits on the real data stack, their views with mocked Cubits (states, large text, iOS alerts), the drawer, the composition root |
+| `app/` | 57 | first launch and habit flows end to end (create → due → complete, skip and Undo, +1, backfill, archive, edit, delete, the discard guard), and the accessibility tour with the demo |
 
 - **Navigation:** every rule of the first-launch gate; typed locations; the app on its real DI graph (first launch, each tab, the drawer over every tab, each drawer screen and Back, Search from the app bars, the habit form from both "New habit" buttons and over its habit, the routine editor, deep links with a Close button, an unknown location).
 - **Design system:** the themes, and WCAG AA contrast of every status color (done, skipped, missed, streak) on the page, cards and filled fields, and of all eight habit colors with their text, in both themes.
-- **The accessibility tour:** Welcome (also after a failed demo), the drawer and every screen, in light and dark at 200 % text: no overflow, tap targets ≥ 48 × 48, labels, contrast. The tab labels keep their size at 300 % (a long press shows them, with the full name for Badges).
-- **Mutation checks:** six behaviours were broken on purpose (the log's CHECK, replaceAll's transaction, the +1 upsert, onboarding only after a loaded demo, the week-anchored demo days, the weekday bitmask), and each made a test fail.
+- **The accessibility tour:** Welcome (also after a failed demo), the drawer and every screen, with the demo where it has content (Today, Habits, a counted and a weekly habit's page, the form with its errors), in light and dark at 200 % text: no overflow, tap targets ≥ 48 × 48, labels, contrast. The tab labels keep their size at 300 % (a long press shows them, with the full name for Badges).
+- **Mutation checks:** fifteen behaviours were broken on purpose, and each made a test fail. Phase 2's six cover the schema and the demo. Phase 3's nine:
+  - the weekly due rule;
+  - a skip, today, and this week each breaking a streak;
+  - a weekly habit spoiling a perfect day;
+  - the rate counting today early;
+  - a 31-day backfill;
+  - the calendar's screen-reader tap;
+  - the clock's cancellation in a combined stream.
 
 CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every pull request. It installs the FVM-pinned Flutter, checks that the committed generated code is up to date and complete, then runs format, analyze and test.
 
@@ -247,6 +271,7 @@ CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every p
 
 - [Phase 1 — Foundation](docs/PHASE_1_SUMMARY.md)
 - [Phase 2 — Data layer](docs/PHASE_2_SUMMARY.md)
+- [Phase 3 — Habits core](docs/PHASE_3_SUMMARY.md)
 
 ---
 
