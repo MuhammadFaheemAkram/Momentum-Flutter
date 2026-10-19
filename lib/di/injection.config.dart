@@ -17,8 +17,10 @@ import 'package:injectable/injectable.dart' as _i526;
 import 'package:momentum/core/common/calendar_clock.dart' as _i600;
 import 'package:momentum/core/common/id_generator.dart' as _i427;
 import 'package:momentum/core/database/app_database.dart' as _i784;
+import 'package:momentum/core/database/daos/goals_dao.dart' as _i958;
 import 'package:momentum/core/database/daos/habit_logs_dao.dart' as _i245;
 import 'package:momentum/core/database/daos/habits_dao.dart' as _i900;
+import 'package:momentum/core/database/daos/routines_dao.dart' as _i874;
 import 'package:momentum/core/database/daos/user_data_dao.dart' as _i688;
 import 'package:momentum/core/network/asset_json_loader.dart' as _i1038;
 import 'package:momentum/core/network/fake_momentum_service.dart' as _i254;
@@ -26,21 +28,28 @@ import 'package:momentum/core/network/momentum_service.dart' as _i102;
 import 'package:momentum/core/network/network_simulator.dart' as _i879;
 import 'package:momentum/core/storage/settings_local_data_source.dart' as _i325;
 import 'package:momentum/data/repository/demo_repository_impl.dart' as _i875;
+import 'package:momentum/data/repository/goal_repository_impl.dart' as _i638;
 import 'package:momentum/data/repository/habit_log_repository_impl.dart'
     as _i113;
 import 'package:momentum/data/repository/habit_repository_impl.dart' as _i304;
+import 'package:momentum/data/repository/routine_repository_impl.dart' as _i928;
 import 'package:momentum/data/repository/settings_repository_impl.dart'
     as _i335;
 import 'package:momentum/di/app_module.dart' as _i381;
 import 'package:momentum/domain/repository/demo_repository.dart' as _i752;
+import 'package:momentum/domain/repository/goal_repository.dart' as _i388;
 import 'package:momentum/domain/repository/habit_log_repository.dart' as _i1017;
 import 'package:momentum/domain/repository/habit_repository.dart' as _i119;
+import 'package:momentum/domain/repository/routine_repository.dart' as _i715;
 import 'package:momentum/domain/repository/settings_repository.dart' as _i888;
+import 'package:momentum/domain/usecase/goal_use_cases.dart' as _i188;
 import 'package:momentum/domain/usecase/habit_day_use_cases.dart' as _i832;
 import 'package:momentum/domain/usecase/habit_use_cases.dart' as _i265;
 import 'package:momentum/domain/usecase/load_demo_use_case.dart' as _i989;
+import 'package:momentum/domain/usecase/routine_use_cases.dart' as _i907;
 import 'package:momentum/domain/usecase/start_empty_use_case.dart' as _i725;
 import 'package:momentum/domain/usecase/watch_habit_use_cases.dart' as _i642;
+import 'package:momentum/features/goals/cubit/goals_cubit.dart' as _i700;
 import 'package:momentum/features/habit_actions/habit_day_actions.dart'
     as _i1032;
 import 'package:momentum/features/habit_detail/cubit/habit_detail_cubit.dart'
@@ -48,6 +57,9 @@ import 'package:momentum/features/habit_detail/cubit/habit_detail_cubit.dart'
 import 'package:momentum/features/habit_form/cubit/habit_form_cubit.dart'
     as _i35;
 import 'package:momentum/features/habits/cubit/habits_cubit.dart' as _i116;
+import 'package:momentum/features/routine_editor/cubit/routine_editor_cubit.dart'
+    as _i613;
+import 'package:momentum/features/routines/cubit/routines_cubit.dart' as _i375;
 import 'package:momentum/features/today/cubit/today_cubit.dart' as _i789;
 import 'package:momentum/features/welcome/cubit/welcome_cubit.dart' as _i208;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
@@ -94,9 +106,22 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i245.HabitLogsDao>(
       () => appModule.habitLogsDao(gh<_i784.AppDatabase>()),
     );
+    gh.lazySingleton<_i874.RoutinesDao>(
+      () => appModule.routinesDao(gh<_i784.AppDatabase>()),
+    );
+    gh.lazySingleton<_i958.GoalsDao>(
+      () => appModule.goalsDao(gh<_i784.AppDatabase>()),
+    );
     gh.lazySingleton<_i119.HabitRepository>(
       () => _i304.HabitRepositoryImpl(
         gh<_i900.HabitsDao>(),
+        gh<_i427.IdGenerator>(),
+        gh<_i454.Clock>(),
+      ),
+    );
+    gh.lazySingleton<_i388.GoalRepository>(
+      () => _i638.GoalRepositoryImpl(
+        gh<_i958.GoalsDao>(),
         gh<_i427.IdGenerator>(),
         gh<_i454.Clock>(),
       ),
@@ -154,13 +179,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i600.CalendarClock>(),
       ),
     );
-    gh.factory<_i642.WatchTodayUseCase>(
-      () => _i642.WatchTodayUseCase(
-        gh<_i119.HabitRepository>(),
-        gh<_i1017.HabitLogRepository>(),
-        gh<_i600.CalendarClock>(),
-      ),
-    );
     gh.factory<_i642.WatchHabitsUseCase>(
       () => _i642.WatchHabitsUseCase(
         gh<_i119.HabitRepository>(),
@@ -175,6 +193,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i600.CalendarClock>(),
       ),
     );
+    gh.factory<_i188.SaveGoalUseCase>(
+      () => _i188.SaveGoalUseCase(gh<_i388.GoalRepository>()),
+    );
+    gh.factory<_i188.DeleteGoalUseCase>(
+      () => _i188.DeleteGoalUseCase(gh<_i388.GoalRepository>()),
+    );
     gh.lazySingleton<_i752.DemoRepository>(
       () => _i875.DemoRepositoryImpl(
         gh<_i102.MomentumService>(),
@@ -182,8 +206,23 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i454.Clock>(),
       ),
     );
+    gh.factory<_i188.WatchGoalsUseCase>(
+      () => _i188.WatchGoalsUseCase(
+        gh<_i388.GoalRepository>(),
+        gh<_i119.HabitRepository>(),
+        gh<_i1017.HabitLogRepository>(),
+        gh<_i600.CalendarClock>(),
+      ),
+    );
     gh.factory<_i725.StartEmptyUseCase>(
       () => _i725.StartEmptyUseCase(gh<_i888.SettingsRepository>()),
+    );
+    gh.lazySingleton<_i715.RoutineRepository>(
+      () => _i928.RoutineRepositoryImpl(
+        gh<_i874.RoutinesDao>(),
+        gh<_i427.IdGenerator>(),
+        gh<_i454.Clock>(),
+      ),
     );
     gh.factory<_i1032.HabitDayActions>(
       () => _i1032.HabitDayActions(
@@ -192,6 +231,27 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i832.ClearHabitDayUseCase>(),
         gh<_i832.RestoreHabitDayUseCase>(),
         gh<_i265.SetHabitArchivedUseCase>(),
+      ),
+    );
+    gh.factory<_i907.FindRoutineUseCase>(
+      () => _i907.FindRoutineUseCase(gh<_i715.RoutineRepository>()),
+    );
+    gh.factory<_i907.SaveRoutineUseCase>(
+      () => _i907.SaveRoutineUseCase(gh<_i715.RoutineRepository>()),
+    );
+    gh.factory<_i907.DeleteRoutineUseCase>(
+      () => _i907.DeleteRoutineUseCase(gh<_i715.RoutineRepository>()),
+    );
+    gh.factory<_i907.WatchRoutinesUseCase>(
+      () => _i907.WatchRoutinesUseCase(
+        gh<_i715.RoutineRepository>(),
+        gh<_i600.CalendarClock>(),
+      ),
+    );
+    gh.factory<_i907.ToggleRoutineItemUseCase>(
+      () => _i907.ToggleRoutineItemUseCase(
+        gh<_i715.RoutineRepository>(),
+        gh<_i600.CalendarClock>(),
       ),
     );
     gh.factoryParam<_i35.HabitFormCubit, String?, dynamic>(
@@ -209,12 +269,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1032.HabitDayActions>(),
       ),
     );
-    gh.factory<_i789.TodayCubit>(
-      () => _i789.TodayCubit(
-        gh<_i642.WatchTodayUseCase>(),
-        gh<_i1032.HabitDayActions>(),
-      ),
-    );
     gh.factoryParam<_i994.HabitDetailCubit, String, dynamic>(
       (habitId, _) => _i994.HabitDetailCubit(
         gh<_i642.WatchHabitDetailUseCase>(),
@@ -228,6 +282,43 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i989.LoadDemoUseCase(
         gh<_i752.DemoRepository>(),
         gh<_i888.SettingsRepository>(),
+      ),
+    );
+    gh.factory<_i642.WatchTodayUseCase>(
+      () => _i642.WatchTodayUseCase(
+        gh<_i119.HabitRepository>(),
+        gh<_i1017.HabitLogRepository>(),
+        gh<_i715.RoutineRepository>(),
+        gh<_i388.GoalRepository>(),
+        gh<_i600.CalendarClock>(),
+      ),
+    );
+    gh.factory<_i700.GoalsCubit>(
+      () => _i700.GoalsCubit(
+        gh<_i188.WatchGoalsUseCase>(),
+        gh<_i188.SaveGoalUseCase>(),
+        gh<_i188.DeleteGoalUseCase>(),
+      ),
+    );
+    gh.factoryParam<_i613.RoutineEditorCubit, String?, dynamic>(
+      (routineId, _) => _i613.RoutineEditorCubit(
+        gh<_i907.FindRoutineUseCase>(),
+        gh<_i907.SaveRoutineUseCase>(),
+        gh<_i907.DeleteRoutineUseCase>(),
+        gh<_i427.IdGenerator>(),
+        routineId,
+      ),
+    );
+    gh.factory<_i375.RoutinesCubit>(
+      () => _i375.RoutinesCubit(
+        gh<_i907.WatchRoutinesUseCase>(),
+        gh<_i907.ToggleRoutineItemUseCase>(),
+      ),
+    );
+    gh.factory<_i789.TodayCubit>(
+      () => _i789.TodayCubit(
+        gh<_i642.WatchTodayUseCase>(),
+        gh<_i1032.HabitDayActions>(),
       ),
     );
     gh.factory<_i208.WelcomeCubit>(

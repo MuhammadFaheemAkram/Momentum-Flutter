@@ -1,6 +1,8 @@
 import 'package:characters/characters.dart';
+import 'package:momentum/domain/model/goal.dart';
 import 'package:momentum/domain/model/habit.dart';
 import 'package:momentum/domain/model/habit_draft.dart';
+import 'package:momentum/domain/model/routine.dart';
 
 // The input rules, shared by the forms (to show the error under a field)
 // and the use cases (to refuse what slips past). Each returns `null` when
@@ -60,3 +62,71 @@ String? habitDraftError(HabitDraft draft) =>
     habitDescriptionError(draft.description) ??
     scheduleError(draft.schedule) ??
     dailyTargetError(draft.dailyTarget);
+
+abstract final class RoutineLimits {
+  static const maxTitle = 40;
+  static const maxItems = 20;
+  static const maxItemTitle = 60;
+}
+
+String? routineTitleError(String title) {
+  final trimmed = title.trim();
+  if (trimmed.isEmpty) return 'Give the routine a name';
+  if (trimmed.characters.length > RoutineLimits.maxTitle) {
+    return 'Keep the name to ${RoutineLimits.maxTitle} characters';
+  }
+  return null;
+}
+
+String? routineItemsError(List<RoutineItem> items) {
+  if (items.isEmpty) return 'Add at least one step';
+  if (items.length > RoutineLimits.maxItems) {
+    return 'A routine can have up to ${RoutineLimits.maxItems} steps';
+  }
+  return null;
+}
+
+String? routineItemTitleError(String title) {
+  final trimmed = title.trim();
+  if (trimmed.isEmpty) return 'Name this step, or remove it';
+  if (trimmed.characters.length > RoutineLimits.maxItemTitle) {
+    return 'Keep it to ${RoutineLimits.maxItemTitle} characters';
+  }
+  return null;
+}
+
+/// The first rule [draft] breaks, or null.
+String? routineDraftError(RoutineDraft draft) =>
+    routineTitleError(draft.title) ??
+    routineItemsError(draft.items) ??
+    draft.items
+        .map((item) => routineItemTitleError(item.title))
+        .nonNulls
+        .firstOrNull;
+
+abstract final class GoalLimits {
+  static const maxTitle = 60;
+  static const minTarget = 1;
+  static const maxTarget = 200;
+}
+
+String? goalTitleError(String title) {
+  final trimmed = title.trim();
+  if (trimmed.isEmpty) return 'Give the goal a name';
+  if (trimmed.characters.length > GoalLimits.maxTitle) {
+    return 'Keep the name to ${GoalLimits.maxTitle} characters';
+  }
+  return null;
+}
+
+String? goalTargetError(int? target) =>
+    target == null ||
+        target < GoalLimits.minTarget ||
+        target > GoalLimits.maxTarget
+    ? 'Pick a target from ${GoalLimits.minTarget} to ${GoalLimits.maxTarget}'
+    : null;
+
+/// The first rule [draft] breaks, or null. (That a one-habit goal's habit
+/// exists is the database's to say: a foreign key.)
+String? goalDraftError(GoalDraft draft) =>
+    goalTitleError(draft.title) ?? goalTargetError(draft.target);

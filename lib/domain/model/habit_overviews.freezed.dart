@@ -625,7 +625,9 @@ mixin _$TodayOverview {
 
  CalendarDate get today; TodaySummary get summary;/// Due today: not done first, then done, then skipped.
  List<HabitToday> get due;/// The rest: not due today (another weekday, or the week's target met).
- List<HabitToday> get notDue;
+ List<HabitToday> get notDue;/// Routines, in the order of the day, with today's check-offs.
+ List<RoutineProgress> get routines;/// Every goal, with its progress in its current window.
+ List<GoalProgress> get goals;
 /// Create a copy of TodayOverview
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -637,20 +639,20 @@ $TodayOverviewCopyWith<TodayOverview> get copyWith => _$TodayOverviewCopyWithImp
 @override
 bool operator ==(Object other) {
   final _this = this as TodayOverview;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TodayOverview&&(identical(other.today, _this.today) || other.today == _this.today)&&(identical(other.summary, _this.summary) || other.summary == _this.summary)&&const DeepCollectionEquality().equals(other.due, _this.due)&&const DeepCollectionEquality().equals(other.notDue, _this.notDue));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TodayOverview&&(identical(other.today, _this.today) || other.today == _this.today)&&(identical(other.summary, _this.summary) || other.summary == _this.summary)&&const DeepCollectionEquality().equals(other.due, _this.due)&&const DeepCollectionEquality().equals(other.notDue, _this.notDue)&&const DeepCollectionEquality().equals(other.routines, _this.routines)&&const DeepCollectionEquality().equals(other.goals, _this.goals));
 }
 
 
 @override
 int get hashCode {
   final _this = this as TodayOverview;
-  return Object.hash(runtimeType,_this.today,_this.summary,const DeepCollectionEquality().hash(_this.due),const DeepCollectionEquality().hash(_this.notDue));
+  return Object.hash(runtimeType,_this.today,_this.summary,const DeepCollectionEquality().hash(_this.due),const DeepCollectionEquality().hash(_this.notDue),const DeepCollectionEquality().hash(_this.routines),const DeepCollectionEquality().hash(_this.goals));
 }
 
 @override
 String toString() {
   final _this = this as TodayOverview;
-  return 'TodayOverview(today: ${_this.today}, summary: ${_this.summary}, due: ${_this.due}, notDue: ${_this.notDue})';
+  return 'TodayOverview(today: ${_this.today}, summary: ${_this.summary}, due: ${_this.due}, notDue: ${_this.notDue}, routines: ${_this.routines}, goals: ${_this.goals})';
 }
 
 
@@ -661,7 +663,7 @@ abstract mixin class $TodayOverviewCopyWith<$Res>  {
   factory $TodayOverviewCopyWith(TodayOverview value, $Res Function(TodayOverview) _then) = _$TodayOverviewCopyWithImpl;
 @useResult
 $Res call({
- CalendarDate today, TodaySummary summary, List<HabitToday> due, List<HabitToday> notDue
+ CalendarDate today, TodaySummary summary, List<HabitToday> due, List<HabitToday> notDue, List<RoutineProgress> routines, List<GoalProgress> goals
 });
 
 
@@ -678,13 +680,15 @@ class _$TodayOverviewCopyWithImpl<$Res>
 
 /// Create a copy of TodayOverview
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? today = null,Object? summary = null,Object? due = null,Object? notDue = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? today = null,Object? summary = null,Object? due = null,Object? notDue = null,Object? routines = null,Object? goals = null,}) {
   return _then(TodayOverview(
 today: null == today ? _self.today : today // ignore: cast_nullable_to_non_nullable
 as CalendarDate,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
 as TodaySummary,due: null == due ? _self.due : due // ignore: cast_nullable_to_non_nullable
 as List<HabitToday>,notDue: null == notDue ? _self.notDue : notDue // ignore: cast_nullable_to_non_nullable
-as List<HabitToday>,
+as List<HabitToday>,routines: null == routines ? _self.routines : routines // ignore: cast_nullable_to_non_nullable
+as List<RoutineProgress>,goals: null == goals ? _self.goals : goals // ignore: cast_nullable_to_non_nullable
+as List<GoalProgress>,
   ));
 }
 /// Create a copy of TodayOverview
@@ -778,10 +782,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CalendarDate today,  TodaySummary summary,  List<HabitToday> due,  List<HabitToday> notDue)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CalendarDate today,  TodaySummary summary,  List<HabitToday> due,  List<HabitToday> notDue,  List<RoutineProgress> routines,  List<GoalProgress> goals)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TodayOverview() when $default != null:
-return $default(_that.today,_that.summary,_that.due,_that.notDue);case _:
+return $default(_that.today,_that.summary,_that.due,_that.notDue,_that.routines,_that.goals);case _:
   return orElse();
 
 }
@@ -799,10 +803,10 @@ return $default(_that.today,_that.summary,_that.due,_that.notDue);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CalendarDate today,  TodaySummary summary,  List<HabitToday> due,  List<HabitToday> notDue)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CalendarDate today,  TodaySummary summary,  List<HabitToday> due,  List<HabitToday> notDue,  List<RoutineProgress> routines,  List<GoalProgress> goals)  $default,) {final _that = this;
 switch (_that) {
 case _TodayOverview():
-return $default(_that.today,_that.summary,_that.due,_that.notDue);case _:
+return $default(_that.today,_that.summary,_that.due,_that.notDue,_that.routines,_that.goals);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -819,10 +823,10 @@ return $default(_that.today,_that.summary,_that.due,_that.notDue);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CalendarDate today,  TodaySummary summary,  List<HabitToday> due,  List<HabitToday> notDue)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CalendarDate today,  TodaySummary summary,  List<HabitToday> due,  List<HabitToday> notDue,  List<RoutineProgress> routines,  List<GoalProgress> goals)?  $default,) {final _that = this;
 switch (_that) {
 case _TodayOverview() when $default != null:
-return $default(_that.today,_that.summary,_that.due,_that.notDue);case _:
+return $default(_that.today,_that.summary,_that.due,_that.notDue,_that.routines,_that.goals);case _:
   return null;
 
 }
@@ -834,7 +838,7 @@ return $default(_that.today,_that.summary,_that.due,_that.notDue);case _:
 
 
 class _TodayOverview extends TodayOverview {
-  const _TodayOverview({required this.today, required this.summary, required  List<HabitToday> due, required  List<HabitToday> notDue}): _due = due,_notDue = notDue,super._();
+  const _TodayOverview({required this.today, required this.summary, required  List<HabitToday> due, required  List<HabitToday> notDue,  List<RoutineProgress> routines = const <RoutineProgress>[],  List<GoalProgress> goals = const <GoalProgress>[]}): _due = due,_notDue = notDue,_routines = routines,_goals = goals,super._();
   
 
 @override final  CalendarDate today;
@@ -857,6 +861,24 @@ class _TodayOverview extends TodayOverview {
   return EqualUnmodifiableListView(_notDue);
 }
 
+/// Routines, in the order of the day, with today's check-offs.
+ final  List<RoutineProgress> _routines;
+/// Routines, in the order of the day, with today's check-offs.
+@override@JsonKey() List<RoutineProgress> get routines {
+  if (_routines is EqualUnmodifiableListView) return _routines;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_routines);
+}
+
+/// Every goal, with its progress in its current window.
+ final  List<GoalProgress> _goals;
+/// Every goal, with its progress in its current window.
+@override@JsonKey() List<GoalProgress> get goals {
+  if (_goals is EqualUnmodifiableListView) return _goals;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_goals);
+}
+
 
 /// Create a copy of TodayOverview
 /// with the given fields replaced by the non-null parameter values.
@@ -868,18 +890,18 @@ _$TodayOverviewCopyWith<_TodayOverview> get copyWith => __$TodayOverviewCopyWith
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _TodayOverview&&(identical(other.today, today) || other.today == today)&&(identical(other.summary, summary) || other.summary == summary)&&const DeepCollectionEquality().equals(other.due, _due)&&const DeepCollectionEquality().equals(other.notDue, _notDue));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _TodayOverview&&(identical(other.today, today) || other.today == today)&&(identical(other.summary, summary) || other.summary == summary)&&const DeepCollectionEquality().equals(other.due, _due)&&const DeepCollectionEquality().equals(other.notDue, _notDue)&&const DeepCollectionEquality().equals(other.routines, _routines)&&const DeepCollectionEquality().equals(other.goals, _goals));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,today,summary,const DeepCollectionEquality().hash(_due),const DeepCollectionEquality().hash(_notDue));
+    return Object.hash(runtimeType,today,summary,const DeepCollectionEquality().hash(_due),const DeepCollectionEquality().hash(_notDue),const DeepCollectionEquality().hash(_routines),const DeepCollectionEquality().hash(_goals));
 }
 
 @override
 String toString() {
-    return 'TodayOverview(today: $today, summary: $summary, due: $due, notDue: $notDue)';
+    return 'TodayOverview(today: $today, summary: $summary, due: $due, notDue: $notDue, routines: $routines, goals: $goals)';
 }
 
 
@@ -890,7 +912,7 @@ abstract mixin class _$TodayOverviewCopyWith<$Res> implements $TodayOverviewCopy
   factory _$TodayOverviewCopyWith(_TodayOverview value, $Res Function(_TodayOverview) _then) = __$TodayOverviewCopyWithImpl;
 @override @useResult
 $Res call({
- CalendarDate today, TodaySummary summary, List<HabitToday> due, List<HabitToday> notDue
+ CalendarDate today, TodaySummary summary, List<HabitToday> due, List<HabitToday> notDue, List<RoutineProgress> routines, List<GoalProgress> goals
 });
 
 
@@ -907,13 +929,15 @@ class __$TodayOverviewCopyWithImpl<$Res>
 
 /// Create a copy of TodayOverview
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? today = null,Object? summary = null,Object? due = null,Object? notDue = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? today = null,Object? summary = null,Object? due = null,Object? notDue = null,Object? routines = null,Object? goals = null,}) {
   return _then(_TodayOverview(
 today: null == today ? _self.today : today // ignore: cast_nullable_to_non_nullable
 as CalendarDate,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
 as TodaySummary,due: null == due ? _self._due : due // ignore: cast_nullable_to_non_nullable
 as List<HabitToday>,notDue: null == notDue ? _self._notDue : notDue // ignore: cast_nullable_to_non_nullable
-as List<HabitToday>,
+as List<HabitToday>,routines: null == routines ? _self._routines : routines // ignore: cast_nullable_to_non_nullable
+as List<RoutineProgress>,goals: null == goals ? _self._goals : goals // ignore: cast_nullable_to_non_nullable
+as List<GoalProgress>,
   ));
 }
 

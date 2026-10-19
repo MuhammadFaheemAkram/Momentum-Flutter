@@ -27,6 +27,14 @@ abstract final class DateLabels {
   static String weekday(CalendarDate date) =>
       DateFormat('EEEE').format(date.toDateTime());
 
+  /// When a goal starts over: "Resets tomorrow", "Resets Monday" (within a
+  /// week), "Resets 1 Nov".
+  static String resets(CalendarDate day, {required CalendarDate today}) {
+    if (day == today.addDays(1)) return 'Resets tomorrow';
+    if (day <= today.addDays(7)) return 'Resets ${weekday(day)}';
+    return 'Resets ${dayMonth(day)}';
+  }
+
   /// "21 Oct 2026".
   static String short(CalendarDate date) =>
       DateFormat('d MMM y').format(date.toDateTime());

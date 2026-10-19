@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:momentum/domain/calculation/overviews.dart';
+import 'package:momentum/domain/model/routine.dart';
 import 'package:momentum/features/habit_actions/habit_notice.dart';
 import 'package:momentum/features/shell/shell_drawer_scope.dart';
 import 'package:momentum/features/today/cubit/today_cubit.dart';
@@ -91,6 +92,50 @@ void main() {
     await tester.tap(find.text('Not due today (1)'));
     await tester.pumpAndSettle();
     expect(find.text('Gym'), findsOneWidget);
+  });
+
+  testWidgets("today's routines and the goals, after the habits", (
+    tester,
+  ) async {
+    final overview = buildTodayOverview(
+      [readHabit],
+      const [],
+      today: today,
+      routines: [routine()],
+      checks: [RoutineCheck(itemId: 'r-a', day: today)],
+      goals: [goal()],
+    );
+    await pump(
+      tester,
+      TodayState(status: TodayStatus.ready, overview: overview),
+    );
+
+    expect(find.text('Routines today'), findsOneWidget);
+    expect(find.text('1 / 3'), findsOneWidget);
+    expect(find.text('Goals'), findsOneWidget);
+    expect(find.text('0 of 5 this week'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Routines today')).dy,
+      greaterThan(tester.getTopLeft(find.text('Read 20 pages')).dy),
+    );
+  });
+
+  testWidgets('no habits, but routines: a way to add a habit', (tester) async {
+    await pump(
+      tester,
+      TodayState(
+        status: TodayStatus.ready,
+        overview: buildTodayOverview(
+          const [],
+          const [],
+          today: today,
+          routines: [routine()],
+        ),
+      ),
+    );
+
+    expect(find.text('No habits yet.'), findsOneWidget);
+    expect(find.text('Routines today'), findsOneWidget);
   });
 
   testWidgets('while loading, a spinner', (tester) async {

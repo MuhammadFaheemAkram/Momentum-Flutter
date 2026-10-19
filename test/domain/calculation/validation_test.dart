@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:momentum/domain/calculation/validation.dart';
+import 'package:momentum/domain/model/goal.dart';
 import 'package:momentum/domain/model/habit.dart';
 import 'package:momentum/domain/model/habit_draft.dart';
 import 'package:momentum/domain/model/habit_enums.dart';
+import 'package:momentum/domain/model/routine.dart';
 
 import '../../helpers/habit_builders.dart';
 
@@ -52,5 +54,54 @@ void main() {
     expect(habitDraftError(draft), isNull);
     expect(habitDraftError(draft.copyWith(title: '')), 'Give the habit a name');
     expect(habitDraftError(draft.copyWith(dailyTarget: 0)), isNotNull);
+  });
+
+  group('a routine', () {
+    RoutineDraft draft({String title = 'Morning', List<String>? items}) =>
+        RoutineDraft(
+          title: title,
+          items: [
+            for (final (i, t) in (items ?? ['Stretch']).indexed)
+              RoutineItem(id: '$i', title: t),
+          ],
+        );
+
+    test('needs a name of up to 40 characters', () {
+      expect(routineDraftError(draft(title: '')), 'Give the routine a name');
+      expect(routineDraftError(draft(title: 'a' * 40)), isNull);
+      expect(routineDraftError(draft(title: 'a' * 41)), isNotNull);
+    });
+
+    test('needs 1–20 steps, each named, up to 60 characters', () {
+      expect(routineDraftError(draft(items: [])), 'Add at least one step');
+      expect(routineDraftError(draft(items: List.filled(20, 'x'))), isNull);
+      expect(routineDraftError(draft(items: List.filled(21, 'x'))), isNotNull);
+      expect(
+        routineDraftError(draft(items: ['ok', ' '])),
+        'Name this step, or remove it',
+      );
+      expect(routineDraftError(draft(items: ['a' * 61])), isNotNull);
+    });
+  });
+
+  group('a goal', () {
+    const draft = GoalDraft(
+      title: 'Complete 25 habits',
+      scope: GoalScope.allHabits(),
+      period: GoalPeriod.weekly,
+      target: 25,
+    );
+
+    test('needs a name and a target of 1–200', () {
+      expect(goalDraftError(draft), isNull);
+      expect(
+        goalDraftError(draft.copyWith(title: ' ')),
+        'Give the goal a name',
+      );
+      expect(goalDraftError(draft.copyWith(target: 0)), isNotNull);
+      expect(goalDraftError(draft.copyWith(target: 200)), isNull);
+      expect(goalDraftError(draft.copyWith(target: 201)), isNotNull);
+      expect(goalTargetError(null), isNotNull);
+    });
   });
 }

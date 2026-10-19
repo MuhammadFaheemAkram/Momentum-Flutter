@@ -5,8 +5,10 @@ import 'package:momentum/domain/model/calendar_date.dart';
 import 'package:momentum/domain/model/habit.dart';
 import 'package:momentum/domain/model/habit_log.dart';
 import 'package:momentum/domain/model/habit_overviews.dart';
+import 'package:momentum/domain/repository/goal_repository.dart';
 import 'package:momentum/domain/repository/habit_log_repository.dart';
 import 'package:momentum/domain/repository/habit_repository.dart';
+import 'package:momentum/domain/repository/routine_repository.dart';
 import 'package:stream_transform/stream_transform.dart';
 
 // The screens' live views: today's date, habits and logs, combined and
@@ -18,19 +20,44 @@ import 'package:stream_transform/stream_transform.dart';
 // `asBroadcastStream()`, which never cancels it: the clock, and its midnight
 // timer, would outlive the screen (conventions §11.61).
 
-/// Today: the ring, the perfect days, the week, today's habits.
+/// Today: the ring, the perfect days, the week, today's habits, routines
+/// and goals.
 @injectable
 class WatchTodayUseCase {
-  const WatchTodayUseCase(this._habits, this._logs, this._clock);
+  const WatchTodayUseCase(
+    this._habits,
+    this._logs,
+    this._routines,
+    this._goals,
+    this._clock,
+  );
 
   final HabitRepository _habits;
   final HabitLogRepository _logs;
+  final RoutineRepository _routines;
+  final GoalRepository _goals;
   final CalendarClock _clock;
 
-  Stream<TodayOverview> call() => _clock.watchToday().combineLatest(
-    _habitsAndLogs(_habits.watchHabits(), _logs.watchLogs()),
-    (today, data) => buildTodayOverview(data.$1, data.$2, today: today),
-  );
+  Stream<TodayOverview> call() {
+    final routines = _routines.watchRoutines().combineLatest(
+      _routines.watchChecks(),
+      (routines, checks) => (routines, checks),
+    );
+    final everything = _habitsAndLogs(_habits.watchHabits(), _logs.watchLogs())
+        .combineLatest(routines, (habits, routines) => (habits, routines))
+        .combineLatest(_goals.watchGoals(), (data, goals) => (data, goals));
+    return _clock.watchToday().combineLatest(everything, (today, data) {
+      final (((habits, logs), (routines, checks)), goals) = data;
+      return buildTodayOverview(
+        habits,
+        logs,
+        today: today,
+        routines: routines,
+        checks: checks,
+        goals: goals,
+      );
+    });
+  }
 }
 
 /// Every habit, archived ones too, as it stands today.

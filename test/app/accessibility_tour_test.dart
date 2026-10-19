@@ -81,6 +81,9 @@ void main() {
         ('Habit detail (a counted habit)', '/habits/habit_water'),
         ('Habit detail (a weekly habit)', '/habits/habit_spanish'),
         ('Edit habit', '/habits/habit_run/edit'),
+        ('Routines', '/routines'),
+        ('Edit routine', '/routines/routine_morning/edit'),
+        ('Goals', '/goals'),
       ]) {
         testWidgets(name, (tester) async {
           await open(tester, at: location, withDemo: true);
@@ -133,6 +136,26 @@ void main() {
         await tester.tap(find.text('Save'));
         await tester.pumpAndSettle();
         expect(find.text('Give the habit a name'), findsOneWidget);
+        await expectAccessible(tester);
+      });
+
+      testWidgets('Goals, monthly, and the goal sheet', (tester) async {
+        await open(tester, at: '/goals', withDemo: true);
+        await tester.tap(find.text('Monthly (1)'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Read on 20 days this month'));
+        await tester.pumpAndSettle();
+        expect(find.text('Edit goal'), findsOneWidget);
+        await expectAccessible(tester);
+      });
+
+      testWidgets('New routine, with its errors', (tester) async {
+        await open(tester, at: '/routines/new');
+        await tester.tap(find.text('Add a step'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+        expect(find.text('Give the routine a name'), findsOneWidget);
         await expectAccessible(tester);
       });
 

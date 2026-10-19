@@ -69,4 +69,19 @@ void main() {
     );
     expect(AppTab.achievements.label, 'Achievements');
   });
+
+  testWidgets('at large text it widens, so long labels keep whole words', (
+    tester,
+  ) async {
+    await pumpDrawer(tester);
+    expect(tester.getSize(find.byType(Drawer)).width, 304);
+
+    // AX3 on iOS, about 235 %. (The test font's square glyphs make the
+    // words themselves no measure: the width is what changes.)
+    tester.platformDispatcher.textScaleFactorTestValue = 2.35;
+    addTearDown(tester.platformDispatcher.clearAllTestValues);
+    await pumpDrawer(tester);
+
+    expect(tester.getSize(find.byType(Drawer)).width, closeTo(390 * 0.9, 0.01));
+  });
 }

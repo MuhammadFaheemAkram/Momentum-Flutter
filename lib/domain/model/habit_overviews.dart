@@ -4,8 +4,10 @@ import 'package:momentum/domain/calculation/habit_history.dart';
 import 'package:momentum/domain/calculation/perfect_days.dart';
 import 'package:momentum/domain/calculation/streaks.dart';
 import 'package:momentum/domain/model/calendar_date.dart';
+import 'package:momentum/domain/model/goal.dart';
 import 'package:momentum/domain/model/habit.dart';
 import 'package:momentum/domain/model/habit_log.dart';
+import 'package:momentum/domain/model/routine.dart';
 
 part 'habit_overviews.freezed.dart';
 
@@ -67,11 +69,18 @@ abstract class TodayOverview with _$TodayOverview {
 
     /// The rest: not due today (another weekday, or the week's target met).
     required List<HabitToday> notDue,
+
+    /// Routines, in the order of the day, with today's check-offs.
+    @Default(<RoutineProgress>[]) List<RoutineProgress> routines,
+
+    /// Every goal, with its progress in its current window.
+    @Default(<GoalProgress>[]) List<GoalProgress> goals,
   }) = _TodayOverview;
 
   const TodayOverview._();
 
-  bool get isEmpty => due.isEmpty && notDue.isEmpty;
+  bool get isEmpty =>
+      due.isEmpty && notDue.isEmpty && routines.isEmpty && goals.isEmpty;
 }
 
 /// A day in a habit's calendar heatmap.

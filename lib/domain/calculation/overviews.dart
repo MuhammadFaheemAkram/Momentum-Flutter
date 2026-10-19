@@ -1,11 +1,15 @@
 import 'package:momentum/domain/calculation/completion_rate.dart';
+import 'package:momentum/domain/calculation/goals.dart';
 import 'package:momentum/domain/calculation/habit_history.dart';
 import 'package:momentum/domain/calculation/perfect_days.dart';
+import 'package:momentum/domain/calculation/routines.dart';
 import 'package:momentum/domain/calculation/streaks.dart';
 import 'package:momentum/domain/model/calendar_date.dart';
+import 'package:momentum/domain/model/goal.dart';
 import 'package:momentum/domain/model/habit.dart';
 import 'package:momentum/domain/model/habit_log.dart';
 import 'package:momentum/domain/model/habit_overviews.dart';
+import 'package:momentum/domain/model/routine.dart';
 
 /// [history]'s habit as it stands on [today].
 HabitToday habitToday(HabitHistory history, {required CalendarDate today}) =>
@@ -18,13 +22,19 @@ HabitToday habitToday(HabitHistory history, {required CalendarDate today}) =>
     );
 
 /// Today, for every habit that isn't archived, in the user's order. A habit
-/// that starts later is listed as not due today.
+/// that starts later is listed as not due today. With today's routines and
+/// every goal's progress.
 TodayOverview buildTodayOverview(
   List<Habit> habits,
   List<HabitLog> logs, {
   required CalendarDate today,
+  List<Routine> routines = const [],
+  List<RoutineCheck> checks = const [],
+  List<Goal> goals = const [],
 }) {
   final histories = _histories(habits.where((h) => h.archivedAt == null), logs);
+  // Goals count archived habits' done days too: they still happened.
+  final allHistories = _histories(habits, logs);
   final active = [
     for (final history in histories) habitToday(history, today: today),
   ];
@@ -58,7 +68,24 @@ TodayOverview buildTodayOverview(
       for (final habit in active)
         if (!due.contains(habit)) habit,
     ],
+    routines: routinesToday(routines, checks, today: today),
+    goals: [
+      for (final goal in goals) goalProgress(goal, allHistories, today: today),
+    ],
   );
+}
+
+/// Every goal's progress, from every habit's history (archived ones too).
+List<GoalProgress> buildGoalList(
+  List<Goal> goals,
+  List<Habit> habits,
+  List<HabitLog> logs, {
+  required CalendarDate today,
+}) {
+  final histories = _histories(habits, logs);
+  return [
+    for (final goal in goals) goalProgress(goal, histories, today: today),
+  ];
 }
 
 /// Every habit in [habits] as it stands on [today], archived ones included.

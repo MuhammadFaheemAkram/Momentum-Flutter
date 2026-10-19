@@ -43,8 +43,8 @@ Momentum is built in **strict, reviewable phases**. Each phase ends with:
 | 1 | Foundation: FVM project, design system base with the habit palette, typed routes with a first-launch gate, 5-tab shell with a navigation drawer, CI | ✅ Done |
 | 2 | Data models, the drift store with its constraints, the fake service and the demo; Welcome for real | ✅ Done |
 | 3 | The schedule engine (due days, streaks, perfect days, rates), Today, Habits, the habit form and Habit detail with a calendar you can backfill | ✅ Done |
-| 4 | Goals and routines | ⏳ Next |
-| 5 | Achievements, analytics and search | |
+| 4 | Goals counted per day, ISO week or month; routines with steps reordered by drag or screen reader, checked off each day; both on Today | ✅ Done |
+| 5 | Achievements, analytics and search | ⏳ Next |
 | 6 | Notifications, background tasks and settings | |
 | 7 | Open-source polish and final docs | |
 
@@ -132,11 +132,15 @@ habits + logs + today ──▶ HabitHistory ──▶ isDue · stateOn · weekO
                                 ├──▶ habitStreak      days, or ISO weeks for N× a week
                                 ├──▶ perfectDayStreak nothing due missed, something done
                                 ├──▶ completionRate   done ÷ (due − skipped)
-                                └──▶ Today · Habits · Habit detail (built again on every change, and at midnight)
+                                ├──▶ goalProgress     done habit-days in today / the ISO week / the month
+                                └──▶ Today · Habits · Habit detail · Goals (built again on every change, and at midnight)
+routines + check-offs + today ──▶ routinesToday    in the order of the day; only today's check-offs count
 ```
 
 - **Fixed days** (daily, on weekdays) are judged per day: a due day not done breaks the streak; days not due and skipped days pass over it; today counts once done and never breaks it.
 - **Times a week** is judged per ISO week: the week has N slots, a skip uses one, and the streak counts weeks that met their target. A weekly habit's empty day is never a "miss".
+- **Goals** count a habit's done days (its daily target reached) in the current window: today, the ISO week, or the month. Nothing resets; the next window simply counts from zero.
+- **Routines** are written whole: a save rewrites every step's position in one transaction, and steps keep their ids, so their check-offs follow them when reordered.
 
 **Navigation:**
 
@@ -183,7 +187,7 @@ Momentum/
 │   │   ├── navigation/             # app_routes (+ .g.dart), app_router, first_launch_redirect, stream_listenable, fallback Close button
 │   │   ├── network/                # MomentumService (fake), dto/, NetworkSimulator, AssetJsonLoader
 │   │   └── storage/                # SettingsLocalDataSource
-│   ├── data/                       # mapper/ (rows ⇄ models, the demo), repository/ (habits, logs, demo, settings)
+│   ├── data/                       # mapper/ (rows ⇄ models, the demo), repository/ (habits, logs, routines, goals, demo, settings)
 │   ├── domain/                     # model/ (Habit, HabitSchedule, HabitLog, …, read models), calculation/ (the engine, validation), repository/, usecase/
 │   ├── features/                   # welcome, shell (tabs + drawer), today, habits, habit_actions (shared), habit_form, habit_detail,
 │   │                               # routines, routine_editor, goals, analytics, achievements, search, settings, about
@@ -222,27 +226,31 @@ fvm dart format --output=none --set-exit-if-changed .
 fvm flutter test
 ```
 
-**398 tests** after Phase 3:
+**482 tests** after Phase 4:
 
 | Area | Tests | What they cover |
 |---|---:|---|
-| `domain/` | 106 | the engine: `isDue` for every schedule, every streak edge (skips, days off, today pending, partial days, month and year ends, weekly targets, a first week part-way through), perfect days, the rate and the week strip; validation; the use cases' rules (archived, before the start, the 30-day backfill window); `CalendarDate`, `TimeOfDayValue`, the models |
-| `data/` | 43 | the demo mapper, the shipped demo as of every weekday, a round trip of every field through the database, the habit, demo and settings repositories |
-| `core/` | 130 | the schema's constraints and cascades, the habit and log DAOs (an update never cascades), the midnight clock, the fake service, navigation, the design system (contrast, the habit card, the calendar's semantics) |
-| `features/`, `di/` | 62 | the Today, Habits, form, detail and Welcome Cubits on the real data stack, their views with mocked Cubits (states, large text, iOS alerts), the drawer, the composition root |
-| `app/` | 57 | first launch and habit flows end to end (create → due → complete, skip and Undo, +1, backfill, archive, edit, delete, the discard guard), and the accessibility tour with the demo |
+| `domain/` | 128 | the engine: `isDue` for every schedule, every streak edge (skips, days off, today pending, partial days, month and year ends, weekly targets, a first week part-way through), perfect days, the rate and the week strip; goal windows (ISO weeks across a month end, month lengths) and progress (partial days and skips don't count, archived habits do); today's routines; validation; the use cases' rules |
+| `data/` | 49 | the demo mapper, the shipped demo as of every weekday, a round trip of every field through the database, the habit, routine, goal, demo and settings repositories |
+| `core/` | 141 | the schema's constraints and cascades; the DAOs (an update never cascades, a routine saved in one transaction keeps its steps' check-offs, a goal moved to all habits loses its habit); the midnight clock; the fake service; navigation; the design system |
+| `features/`, `di/` | 92 | every screen's Cubit on the real data stack; the views with mocked Cubits (states, large text, iOS alerts, the reorder list's Move up / Move down actions); the goal sheet; the drawer; the composition root |
+| `app/` | 72 | first launch, habit, routine and goal flows end to end (a screen reader's Move to the start saved, a goal moving when a habit is done on Today), and the accessibility tour with the demo |
 
 - **Navigation:** every rule of the first-launch gate; typed locations; the app on its real DI graph (first launch, each tab, the drawer over every tab, each drawer screen and Back, Search from the app bars, the habit form from both "New habit" buttons and over its habit, the routine editor, deep links with a Close button, an unknown location).
 - **Design system:** the themes, and WCAG AA contrast of every status color (done, skipped, missed, streak) on the page, cards and filled fields, and of all eight habit colors with their text, in both themes.
-- **The accessibility tour:** Welcome (also after a failed demo), the drawer and every screen, with the demo where it has content (Today, Habits, a counted and a weekly habit's page, the form with its errors), in light and dark at 200 % text: no overflow, tap targets ≥ 48 × 48, labels, contrast. The tab labels keep their size at 300 % (a long press shows them, with the full name for Badges).
-- **Mutation checks:** fifteen behaviours were broken on purpose, and each made a test fail. Phase 2's six cover the schema and the demo. Phase 3's nine:
-  - the weekly due rule;
-  - a skip, today, and this week each breaking a streak;
-  - a weekly habit spoiling a perfect day;
-  - the rate counting today early;
-  - a 31-day backfill;
-  - the calendar's screen-reader tap;
-  - the clock's cancellation in a combined stream.
+- **The accessibility tour:** Welcome (also after a failed demo), the drawer and every screen, with the demo where it has content (Today, Habits, a counted and a weekly habit's page, the forms with their errors, Routines and the editor, Goals and the goal sheet), in light and dark at 200 % text: no overflow, tap targets ≥ 48 × 48, labels, contrast. The tab labels keep their size at 300 % (a long press shows them, with the full name for Badges).
+- **Mutation checks:** twenty-three behaviours were broken on purpose, and each made a test fail.
+  - Phase 2's six cover the schema and the demo.
+  - Phase 3's nine cover the habit engine, the calendar's screen-reader tap, and the clock's cancellation.
+  - Phase 4's eight:
+    - partial days counting toward a goal;
+    - weeks starting on Sunday;
+    - a routine saved without its transaction;
+    - a save that drops every step (and its check-offs);
+    - a goal update leaving its old habit;
+    - any day's check-offs counting today;
+    - a move one place off;
+    - the drawer's large-text width.
 
 CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every pull request. It installs the FVM-pinned Flutter, checks that the committed generated code is up to date and complete, then runs format, analyze and test.
 
@@ -272,6 +280,7 @@ CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every p
 - [Phase 1 — Foundation](docs/PHASE_1_SUMMARY.md)
 - [Phase 2 — Data layer](docs/PHASE_2_SUMMARY.md)
 - [Phase 3 — Habits core](docs/PHASE_3_SUMMARY.md)
+- [Phase 4 — Goals and routines](docs/PHASE_4_SUMMARY.md)
 
 ---
 

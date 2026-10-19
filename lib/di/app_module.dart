@@ -2,8 +2,10 @@ import 'package:clock/clock.dart';
 import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
 import 'package:momentum/core/database/app_database.dart';
+import 'package:momentum/core/database/daos/goals_dao.dart';
 import 'package:momentum/core/database/daos/habit_logs_dao.dart';
 import 'package:momentum/core/database/daos/habits_dao.dart';
+import 'package:momentum/core/database/daos/routines_dao.dart';
 import 'package:momentum/core/database/daos/user_data_dao.dart';
 import 'package:momentum/core/storage/settings_local_data_source.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,6 +36,12 @@ abstract class AppModule {
 
   @lazySingleton
   HabitLogsDao habitLogsDao(AppDatabase database) => database.habitLogsDao;
+
+  @lazySingleton
+  RoutinesDao routinesDao(AppDatabase database) => database.routinesDao;
+
+  @lazySingleton
+  GoalsDao goalsDao(AppDatabase database) => database.goalsDao;
 
   /// `@preResolve` awaits this before `runApp`, so preferences can be read
   /// synchronously from the first frame: the router knows at once whether

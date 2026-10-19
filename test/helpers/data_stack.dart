@@ -12,12 +12,16 @@ import 'package:momentum/core/network/momentum_service.dart';
 import 'package:momentum/core/network/network_simulator.dart';
 import 'package:momentum/data/mapper/user_data_mappers.dart';
 import 'package:momentum/data/repository/demo_repository_impl.dart';
+import 'package:momentum/data/repository/goal_repository_impl.dart';
 import 'package:momentum/data/repository/habit_log_repository_impl.dart';
 import 'package:momentum/data/repository/habit_repository_impl.dart';
+import 'package:momentum/data/repository/routine_repository_impl.dart';
 import 'package:momentum/domain/model/user_data.dart';
+import 'package:momentum/domain/usecase/goal_use_cases.dart';
 import 'package:momentum/domain/usecase/habit_day_use_cases.dart';
 import 'package:momentum/domain/usecase/habit_use_cases.dart';
 import 'package:momentum/domain/usecase/load_demo_use_case.dart';
+import 'package:momentum/domain/usecase/routine_use_cases.dart';
 import 'package:momentum/domain/usecase/start_empty_use_case.dart';
 import 'package:momentum/domain/usecase/watch_habit_use_cases.dart';
 import 'package:momentum/features/habit_actions/habit_day_actions.dart';
@@ -57,6 +61,8 @@ class DataStack {
   late final ids = IdGenerator(random: Random(1));
   late final habits = HabitRepositoryImpl(db.habitsDao, ids, clock);
   late final logs = HabitLogRepositoryImpl(db.habitLogsDao);
+  late final routines = RoutineRepositoryImpl(db.routinesDao, ids, clock);
+  late final goals = GoalRepositoryImpl(db.goalsDao, ids, clock);
 
   late final findHabit = FindHabitUseCase(habits);
   late final saveHabit = SaveHabitUseCase(habits);
@@ -67,9 +73,23 @@ class DataStack {
   late final clearDay = ClearHabitDayUseCase(habits, logs, calendar);
   late final setDay = SetHabitDayUseCase(habits, logs, calendar);
   late final restoreDay = RestoreHabitDayUseCase(habits, logs, calendar);
-  late final watchToday = WatchTodayUseCase(habits, logs, calendar);
+  late final watchToday = WatchTodayUseCase(
+    habits,
+    logs,
+    routines,
+    goals,
+    calendar,
+  );
   late final watchHabits = WatchHabitsUseCase(habits, logs, calendar);
   late final watchDetail = WatchHabitDetailUseCase(habits, logs, calendar);
+  late final watchRoutines = WatchRoutinesUseCase(routines, calendar);
+  late final findRoutine = FindRoutineUseCase(routines);
+  late final saveRoutine = SaveRoutineUseCase(routines);
+  late final deleteRoutine = DeleteRoutineUseCase(routines);
+  late final toggleRoutineItem = ToggleRoutineItemUseCase(routines, calendar);
+  late final watchGoals = WatchGoalsUseCase(goals, habits, logs, calendar);
+  late final saveGoal = SaveGoalUseCase(goals);
+  late final deleteGoal = DeleteGoalUseCase(goals);
   late final dayActions = HabitDayActions(
     addCheckIn,
     skipHabit,

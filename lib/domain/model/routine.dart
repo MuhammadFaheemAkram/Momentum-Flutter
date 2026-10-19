@@ -36,3 +36,40 @@ abstract class RoutineCheck with _$RoutineCheck {
     required CalendarDate day,
   }) = _RoutineCheck;
 }
+
+/// What the routine editor saves: the title, the time of day, and the items
+/// in their order (existing ones keep their ids, so their check-offs stay).
+@freezed
+abstract class RoutineDraft with _$RoutineDraft {
+  const factory RoutineDraft({
+    required String title,
+    @Default(RoutineTime.anytime) RoutineTime time,
+    required List<RoutineItem> items,
+  }) = _RoutineDraft;
+
+  factory RoutineDraft.of(Routine routine) => RoutineDraft(
+    title: routine.title,
+    time: routine.time,
+    items: routine.items,
+  );
+}
+
+/// A routine as it stands today: which of its items are checked off.
+@freezed
+abstract class RoutineProgress with _$RoutineProgress {
+  const factory RoutineProgress({
+    required Routine routine,
+
+    /// The ids of the items checked off today.
+    required Set<String> checkedItemIds,
+  }) = _RoutineProgress;
+
+  const RoutineProgress._();
+
+  int get done =>
+      routine.items.where((item) => checkedItemIds.contains(item.id)).length;
+
+  int get total => routine.items.length;
+
+  bool get isComplete => total > 0 && done == total;
+}

@@ -1,27 +1,18 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:momentum/core/design_system/design_system.dart';
-import 'package:momentum/core/navigation/app_routes.dart';
-import 'package:momentum/core/navigation/fallback_close_button.dart';
+import 'package:momentum/di/injection.dart';
+import 'package:momentum/features/routines/cubit/routines_cubit.dart';
+import 'package:momentum/features/routines/routines_view.dart';
 
-/// Routines (from the drawer): a placeholder until Phase 4.
+/// Routines (from the drawer, and from Today).
 class RoutinesPage extends StatelessWidget {
   const RoutinesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: fallbackCloseButton(
-          context,
-          () => const TodayRoute().go(context),
-        ),
-        title: const Text('Routines'),
-      ),
-      body: const EmptyStateView(
-        icon: Icons.wb_twilight_outlined,
-        title: 'Routines',
-        message: 'Morning and evening routines with ordered items arrive in Phase 4.',
-      ),
+    return BlocProvider(
+      create: (_) => getIt<RoutinesCubit>()..start(),
+      child: const RoutinesView(),
     );
   }
 }

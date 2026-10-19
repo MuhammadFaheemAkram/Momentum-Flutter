@@ -11,7 +11,8 @@ import 'package:momentum/features/today/cubit/today_cubit.dart';
 import 'package:momentum/features/today/cubit/today_state.dart';
 
 /// Today: the ring for today's due habits, the perfect-day streak, this
-/// week, then today's habits, due ones first, and the rest folded away.
+/// week, then today's habits (due ones first, the rest folded away),
+/// today's routines and the goals.
 class TodayView extends StatelessWidget {
   const TodayView({super.key});
 
@@ -110,7 +111,20 @@ class _Today extends StatelessWidget {
       children: [
         _Header(overview: overview),
         const SectionHeader('Due today'),
-        if (overview.due.isEmpty)
+        if (overview.due.isEmpty && overview.notDue.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium),
+            child: Row(
+              children: [
+                const Expanded(child: Text('No habits yet.')),
+                TextButton(
+                  onPressed: () => openHabitForm(context),
+                  child: const Text('New habit'),
+                ),
+              ],
+            ),
+          )
+        else if (overview.due.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium),
             child: Text('Nothing is due today. Enjoy the day off.'),
@@ -121,6 +135,23 @@ class _Today extends StatelessWidget {
             title: Text('Not due today (${overview.notDue.length})'),
             children: [for (final item in overview.notDue) card(item)],
           ),
+        if (overview.routines.isNotEmpty) ...[
+          const SectionHeader('Routines today'),
+          for (final progress in overview.routines)
+            RoutineSummaryTile(
+              progress: progress,
+              onTap: () => const RoutinesRoute().push<void>(context),
+            ),
+        ],
+        if (overview.goals.isNotEmpty) ...[
+          const SectionHeader('Goals'),
+          for (final progress in overview.goals)
+            GoalCard(
+              progress: progress,
+              today: today,
+              onTap: () => const GoalsRoute().push<void>(context),
+            ),
+        ],
       ],
     );
   }

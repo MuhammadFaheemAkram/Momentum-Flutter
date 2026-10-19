@@ -83,6 +83,11 @@ class AppNavigationDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Drawer(
+      // At large text, nearly the screen's width: at the standard 304
+      // points, "Achievements" broke mid-word (seen at AX3 on an iPhone).
+      width: context.prefersStackedLayout
+          ? MediaQuery.sizeOf(context).width * 0.9
+          : null,
       child: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.xSmall),

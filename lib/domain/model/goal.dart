@@ -31,3 +31,57 @@ abstract class Goal with _$Goal {
     required DateTime createdAt,
   }) = _Goal;
 }
+
+/// What the goal sheet saves.
+@freezed
+abstract class GoalDraft with _$GoalDraft {
+  const factory GoalDraft({
+    required String title,
+    required GoalScope scope,
+    required GoalPeriod period,
+    required int target,
+  }) = _GoalDraft;
+
+  factory GoalDraft.of(Goal goal) => GoalDraft(
+    title: goal.title,
+    scope: goal.scope,
+    period: goal.period,
+    target: goal.target,
+  );
+}
+
+/// The days a goal counts in now: today, this ISO week, or this month.
+@freezed
+abstract class GoalWindow with _$GoalWindow {
+  const factory GoalWindow({
+    required CalendarDate start,
+    required CalendarDate end,
+  }) = _GoalWindow;
+
+  const GoalWindow._();
+
+  bool contains(CalendarDate day) => day >= start && day <= end;
+
+  /// The day the goal starts over from zero.
+  CalendarDate get resets => end.addDays(1);
+}
+
+/// A goal with its progress in the current window, derived when read.
+@freezed
+abstract class GoalProgress with _$GoalProgress {
+  const factory GoalProgress({
+    required Goal goal,
+    required GoalWindow window,
+    required int current,
+
+    /// The habit a one-habit goal counts (null for all habits).
+    String? habitTitle,
+  }) = _GoalProgress;
+
+  const GoalProgress._();
+
+  bool get isMet => current >= goal.target;
+
+  /// 0 to 1, capped at 1.
+  double get ratio => (current / goal.target).clamp(0, 1).toDouble();
+}

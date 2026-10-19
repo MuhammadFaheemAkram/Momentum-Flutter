@@ -21,6 +21,15 @@ extension HabitIconData on HabitIcon {
   };
 }
 
+extension RoutineTimeIcon on RoutineTime {
+  IconData get icon => switch (this) {
+    RoutineTime.morning => Icons.wb_twilight_outlined,
+    RoutineTime.afternoon => Icons.wb_sunny_outlined,
+    RoutineTime.evening => Icons.nights_stay_outlined,
+    RoutineTime.anytime => Icons.schedule,
+  };
+}
+
 extension HabitToneOf on BuildContext {
   /// [color]'s tone for the current theme.
   HabitTone habitTone(HabitColor color) =>

@@ -101,3 +101,12 @@ extension HabitIconLabel on HabitIcon {
     HabitIcon.code => 'Code',
   };
 }
+
+extension GoalPeriodLabel on GoalPeriod {
+  /// "today", "this week", "this month".
+  String get current => switch (this) {
+    GoalPeriod.daily => 'today',
+    GoalPeriod.weekly => 'this week',
+    GoalPeriod.monthly => 'this month',
+  };
+}
