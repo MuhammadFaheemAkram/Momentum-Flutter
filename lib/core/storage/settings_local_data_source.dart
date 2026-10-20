@@ -15,13 +15,20 @@ class SettingsLocalDataSource {
   const SettingsLocalDataSource(this._preferences);
 
   static const onboardedKey = 'settings.onboarded';
+  static const recentSearchesKey = 'search.recent';
 
   /// The only keys the cache loads and allows writing.
-  static const allowList = {onboardedKey};
+  static const allowList = {onboardedKey, recentSearchesKey};
 
   final SharedPreferencesWithCache _preferences;
 
   bool? get onboarded => _preferences.getBool(onboardedKey);
+
+  List<String>? get recentSearches =>
+      _preferences.getStringList(recentSearchesKey);
+
+  Future<void> setRecentSearches(List<String> searches) =>
+      _preferences.setStringList(recentSearchesKey, searches);
 
   Future<void> setOnboarded({required bool onboarded}) =>
       _preferences.setBool(onboardedKey, onboarded);

@@ -1,10 +1,12 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:momentum/core/database/converters.dart';
+import 'package:momentum/core/database/daos/achievements_dao.dart';
 import 'package:momentum/core/database/daos/goals_dao.dart';
 import 'package:momentum/core/database/daos/habit_logs_dao.dart';
 import 'package:momentum/core/database/daos/habits_dao.dart';
 import 'package:momentum/core/database/daos/routines_dao.dart';
+import 'package:momentum/core/database/daos/search_dao.dart';
 import 'package:momentum/core/database/daos/user_data_dao.dart';
 import 'package:momentum/core/database/tables/tables.dart';
 import 'package:momentum/domain/model/calendar_date.dart';
@@ -32,7 +34,15 @@ part 'app_database.g.dart';
     Goals,
     AchievementUnlocks,
   ],
-  daos: [UserDataDao, HabitsDao, HabitLogsDao, RoutinesDao, GoalsDao],
+  daos: [
+    UserDataDao,
+    HabitsDao,
+    HabitLogsDao,
+    RoutinesDao,
+    GoalsDao,
+    AchievementsDao,
+    SearchDao,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   /// Opens `momentum.sqlite` in the app's documents directory. Tests pass an

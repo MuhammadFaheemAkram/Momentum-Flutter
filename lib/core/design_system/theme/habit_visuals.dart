@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:momentum/core/design_system/theme/app_colors.dart';
 import 'package:momentum/core/design_system/theme/habit_palette.dart';
 import 'package:momentum/domain/calculation/habit_history.dart';
+import 'package:momentum/domain/model/achievement.dart';
 import 'package:momentum/domain/model/habit_enums.dart';
 
 extension HabitIconData on HabitIcon {
@@ -27,6 +28,21 @@ extension RoutineTimeIcon on RoutineTime {
     RoutineTime.afternoon => Icons.wb_sunny_outlined,
     RoutineTime.evening => Icons.nights_stay_outlined,
     RoutineTime.anytime => Icons.schedule,
+  };
+}
+
+extension AchievementIconData on AchievementId {
+  IconData get icon => switch (this) {
+    AchievementId.firstStep => Icons.flag,
+    AchievementId.streak7 => Icons.local_fire_department,
+    AchievementId.streak30 => Icons.whatshot,
+    AchievementId.perfectWeek => Icons.event_available,
+    AchievementId.century => Icons.military_tech,
+    AchievementId.earlyBird => Icons.wb_twilight,
+    AchievementId.habitBuilder => Icons.construction,
+    AchievementId.consistencyMaster => Icons.workspace_premium,
+    AchievementId.comeback => Icons.replay,
+    AchievementId.allRounder => Icons.diversity_3,
   };
 }
 

@@ -15,6 +15,14 @@ abstract final class DateLabels {
     return DateFormat(pattern).format(date.toDateTime());
   }
 
+  /// [day], for the middle of a sentence: "today", "yesterday", "Mon, 12
+  /// Oct" ("Unlocked today").
+  static String inSentence(CalendarDate date, {required CalendarDate today}) {
+    if (date == today) return 'today';
+    if (date == today.addDays(-1)) return 'yesterday';
+    return day(date, today: today);
+  }
+
   /// "Wednesday, 21 October": Today's heading.
   static String long(CalendarDate date) =>
       DateFormat('EEEE, d MMMM').format(date.toDateTime());
@@ -22,6 +30,14 @@ abstract final class DateLabels {
   /// "12 Oct": a chart's week, a heatmap's first day of a month.
   static String dayMonth(CalendarDate date) =>
       DateFormat('d MMM').format(date.toDateTime());
+
+  /// "Oct": a chart's month.
+  static String month(CalendarDate date) =>
+      DateFormat('MMM').format(date.toDateTime());
+
+  /// "October 2026".
+  static String monthYear(CalendarDate date) =>
+      DateFormat('MMMM y').format(date.toDateTime());
 
   /// "Monday".
   static String weekday(CalendarDate date) =>

@@ -2933,6 +2933,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final HabitLogsDao habitLogsDao = HabitLogsDao(this as AppDatabase);
   late final RoutinesDao routinesDao = RoutinesDao(this as AppDatabase);
   late final GoalsDao goalsDao = GoalsDao(this as AppDatabase);
+  late final AchievementsDao achievementsDao = AchievementsDao(
+    this as AppDatabase,
+  );
+  late final SearchDao searchDao = SearchDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

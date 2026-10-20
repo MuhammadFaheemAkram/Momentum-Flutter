@@ -2,10 +2,12 @@ import 'package:clock/clock.dart';
 import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
 import 'package:momentum/core/database/app_database.dart';
+import 'package:momentum/core/database/daos/achievements_dao.dart';
 import 'package:momentum/core/database/daos/goals_dao.dart';
 import 'package:momentum/core/database/daos/habit_logs_dao.dart';
 import 'package:momentum/core/database/daos/habits_dao.dart';
 import 'package:momentum/core/database/daos/routines_dao.dart';
+import 'package:momentum/core/database/daos/search_dao.dart';
 import 'package:momentum/core/database/daos/user_data_dao.dart';
 import 'package:momentum/core/storage/settings_local_data_source.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,6 +44,13 @@ abstract class AppModule {
 
   @lazySingleton
   GoalsDao goalsDao(AppDatabase database) => database.goalsDao;
+
+  @lazySingleton
+  AchievementsDao achievementsDao(AppDatabase database) =>
+      database.achievementsDao;
+
+  @lazySingleton
+  SearchDao searchDao(AppDatabase database) => database.searchDao;
 
   /// `@preResolve` awaits this before `runApp`, so preferences can be read
   /// synchronously from the first frame: the router knows at once whether

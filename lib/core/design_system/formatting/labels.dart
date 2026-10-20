@@ -1,5 +1,6 @@
 import 'package:momentum/domain/calculation/habit_history.dart';
 import 'package:momentum/domain/calculation/streaks.dart';
+import 'package:momentum/domain/model/achievement.dart';
 import 'package:momentum/domain/model/habit.dart';
 import 'package:momentum/domain/model/habit_enums.dart';
 
@@ -108,5 +109,20 @@ extension GoalPeriodLabel on GoalPeriod {
     GoalPeriod.daily => 'today',
     GoalPeriod.weekly => 'this week',
     GoalPeriod.monthly => 'this month',
+  };
+}
+
+extension AchievementProgressLabel on AchievementProgress {
+  /// "5 of 7 days", "Score 72 of 80", "3 of 5 categories".
+  String get label => switch (measure) {
+    AchievementMeasure.completions => '$current of $target completions',
+    AchievementMeasure.streakDays => '$current of $target days',
+    AchievementMeasure.perfectDays => '$current of $target perfect days',
+    AchievementMeasure.routineDays => '$current of $target mornings',
+    AchievementMeasure.habits => '$current of $target habits',
+    AchievementMeasure.historyDays => '$current of $target days of history',
+    AchievementMeasure.score => 'Score $current of $target',
+    AchievementMeasure.comebacks => 'Not yet',
+    AchievementMeasure.categories => '$current of $target categories',
   };
 }

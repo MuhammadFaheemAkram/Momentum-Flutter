@@ -44,8 +44,8 @@ Momentum is built in **strict, reviewable phases**. Each phase ends with:
 | 2 | Data models, the drift store with its constraints, the fake service and the demo; Welcome for real | ✅ Done |
 | 3 | The schedule engine (due days, streaks, perfect days, rates), Today, Habits, the habit form and Habit detail with a calendar you can backfill | ✅ Done |
 | 4 | Goals counted per day, ISO week or month; routines with steps reordered by drag or screen reader, checked off each day; both on Today | ✅ Done |
-| 5 | Achievements, analytics and search | ⏳ Next |
-| 6 | Notifications, background tasks and settings | |
+| 5 | Ten badges as rules over the history, unlocked once and celebrated; analytics with the consistency score; debounced search with recent searches | ✅ Done |
+| 6 | Notifications, background tasks and settings | ⏳ Next |
 | 7 | Open-source polish and final docs | |
 
 ---
@@ -79,7 +79,7 @@ Packages arrive in the phase that first needs them.
 | Navigation | `go_router` + `go_router_builder` (typed routes, `StatefulShellRoute`, a first-launch `redirect`) | 1 |
 | Dependency injection | `get_it` + `injectable` (a code-generated composition root) | 1 |
 | Lints / CI | `flutter_lints` + strict analyzer modes; GitHub Actions | 1 |
-| State | `flutter_bloc` (Cubits; one Bloc for search, later) | 2 |
+| State | `flutter_bloc` (Cubits; one Bloc, Search); `bloc_concurrency` (`restartable`) | 2, 5 |
 | Models | `freezed` (sealed unions for schedules and goal scopes) + `json_serializable` (checked DTOs) | 2 |
 | Database | `drift` + `drift_flutter`: SQLite with CHECK constraints, foreign keys and an exported schema; shared across isolates | 2 |
 | Preferences | `shared_preferences` (`SharedPreferencesWithCache`, loaded before the first frame) | 2 |
@@ -90,7 +90,7 @@ Packages arrive in the phase that first needs them.
 | iOS touches | `cupertino_ui`: the time wheel and alerts on iOS | 3 |
 | Testing | `flutter_test`, `bloc_test`, `mocktail`, `fake_async` | 1–2 |
 
-Planned: `bloc_concurrency` (Phase 5, search); `flutter_local_notifications`, `timezone`, `workmanager`, `dynamic_color`, `package_info_plus` (Phase 6).
+Planned: `flutter_local_notifications`, `timezone`, `workmanager`, `dynamic_color`, `package_info_plus` (Phase 6).
 
 ---
 
@@ -135,11 +135,14 @@ habits + logs + today ──▶ HabitHistory ──▶ isDue · stateOn · weekO
                                 ├──▶ goalProgress     done habit-days in today / the ISO week / the month
                                 └──▶ Today · Habits · Habit detail · Goals (built again on every change, and at midnight)
 routines + check-offs + today ──▶ routinesToday    in the order of the day; only today's check-offs count
+everything + unlocks ──────────▶ achievementProgress · newlyEarned   ten rules; an unlock is recorded once, and stays
+habits + logs + today ─────────▶ consistencyScore · buildAnalytics  30 days, the last 7 counted twice
 ```
 
 - **Fixed days** (daily, on weekdays) are judged per day: a due day not done breaks the streak; days not due and skipped days pass over it; today counts once done and never breaks it.
 - **Times a week** is judged per ISO week: the week has N slots, a skip uses one, and the streak counts weeks that met their target. A weekly habit's empty day is never a "miss".
 - **Goals** count a habit's done days (its daily target reached) in the current window: today, the ISO week, or the month. Nothing resets; the next window simply counts from zero.
+- **Badges** are rules in code; only the moment each is earned is stored. While the app runs, a watcher re-checks the rules once a burst of writes settles, records what's newly earned (once, in a transaction) and celebrates it with a SnackBar on whatever screen is showing.
 - **Routines** are written whole: a save rewrites every step's position in one transaction, and steps keep their ids, so their check-offs follow them when reordered.
 
 **Navigation:**
@@ -187,7 +190,7 @@ Momentum/
 │   │   ├── navigation/             # app_routes (+ .g.dart), app_router, first_launch_redirect, stream_listenable, fallback Close button
 │   │   ├── network/                # MomentumService (fake), dto/, NetworkSimulator, AssetJsonLoader
 │   │   └── storage/                # SettingsLocalDataSource
-│   ├── data/                       # mapper/ (rows ⇄ models, the demo), repository/ (habits, logs, routines, goals, demo, settings)
+│   ├── data/                       # mapper/ (rows ⇄ models, the demo), repository/ (habits, logs, routines, goals, badges, search, demo, settings)
 │   ├── domain/                     # model/ (Habit, HabitSchedule, HabitLog, …, read models), calculation/ (the engine, validation), repository/, usecase/
 │   ├── features/                   # welcome, shell (tabs + drawer), today, habits, habit_actions (shared), habit_form, habit_detail,
 │   │                               # routines, routine_editor, goals, analytics, achievements, search, settings, about
@@ -226,31 +229,31 @@ fvm dart format --output=none --set-exit-if-changed .
 fvm flutter test
 ```
 
-**482 tests** after Phase 4:
+**541 tests** after Phase 5:
 
 | Area | Tests | What they cover |
 |---|---:|---|
-| `domain/` | 128 | the engine: `isDue` for every schedule, every streak edge (skips, days off, today pending, partial days, month and year ends, weekly targets, a first week part-way through), perfect days, the rate and the week strip; goal windows (ISO weeks across a month end, month lengths) and progress (partial days and skips don't count, archived habits do); today's routines; validation; the use cases' rules |
-| `data/` | 49 | the demo mapper, the shipped demo as of every weekday, a round trip of every field through the database, the habit, routine, goal, demo and settings repositories |
-| `core/` | 141 | the schema's constraints and cascades; the DAOs (an update never cascades, a routine saved in one transaction keeps its steps' check-offs, a goal moved to all habits loses its habit); the midnight clock; the fake service; navigation; the design system |
-| `features/`, `di/` | 92 | every screen's Cubit on the real data stack; the views with mocked Cubits (states, large text, iOS alerts, the reorder list's Move up / Move down actions); the goal sheet; the drawer; the composition root |
-| `app/` | 72 | first launch, habit, routine and goal flows end to end (a screen reader's Move to the start saved, a goal moving when a habit is done on Today), and the accessibility tour with the demo |
+| `domain/` | 156 | the engine: every schedule and streak edge, perfect days, the rate, goal windows and progress, today's routines; every badge rule at its edge (6 vs 7 days, 99 vs 100, 4 vs 5 mornings, a score of 79 vs 80, a week of skips is no comeback) and unlocks that stay; the consistency score's weights and minimum; the analytics series; validation; the use cases' rules |
+| `data/` | 49 | the demo mapper, the shipped demo as of every weekday, a round trip of every field through the database, the repositories |
+| `core/` | 148 | the schema's constraints and cascades; the DAOs (a badge recorded once, `LIKE` with `%` and `_` as plain characters, routines saved in one transaction); the midnight clock and a debounce that cancels its timer; navigation; the design system |
+| `features/`, `di/` | 107 | every screen's Cubit on the real data stack; the SearchBloc in fake time (the debounce) and real time (switching, live results); the views with mocked Cubits; the composition root |
+| `app/` | 81 | first launch, habit, routine, goal, badge and search flows end to end (the first completion celebrated where you are; the demo's badges celebrated together), and the accessibility tour |
 
 - **Navigation:** every rule of the first-launch gate; typed locations; the app on its real DI graph (first launch, each tab, the drawer over every tab, each drawer screen and Back, Search from the app bars, the habit form from both "New habit" buttons and over its habit, the routine editor, deep links with a Close button, an unknown location).
 - **Design system:** the themes, and WCAG AA contrast of every status color (done, skipped, missed, streak) on the page, cards and filled fields, and of all eight habit colors with their text, in both themes.
-- **The accessibility tour:** Welcome (also after a failed demo), the drawer and every screen, with the demo where it has content (Today, Habits, a counted and a weekly habit's page, the forms with their errors, Routines and the editor, Goals and the goal sheet), in light and dark at 200 % text: no overflow, tap targets ≥ 48 × 48, labels, contrast. The tab labels keep their size at 300 % (a long press shows them, with the full name for Badges).
-- **Mutation checks:** twenty-three behaviours were broken on purpose, and each made a test fail.
-  - Phase 2's six cover the schema and the demo.
-  - Phase 3's nine cover the habit engine, the calendar's screen-reader tap, and the clock's cancellation.
-  - Phase 4's eight:
-    - partial days counting toward a goal;
-    - weeks starting on Sunday;
-    - a routine saved without its transaction;
-    - a save that drops every step (and its check-offs);
-    - a goal update leaving its old habit;
-    - any day's check-offs counting today;
-    - a move one place off;
-    - the drawer's large-text width.
+- **The accessibility tour:** Welcome (also after a failed demo), the drawer and every screen, with the demo where it has content (Today, Habits, a counted and a weekly habit's page, the forms with their errors, Routines and the editor, Goals and the goal sheet, Analytics, Achievements, Search with results), in light and dark at 200 % text: no overflow, tap targets ≥ 48 × 48, labels, contrast. The tab labels keep their size at 300 % (a long press shows them, with the full name for Badges).
+- **Mutation checks:** thirty-three behaviours were broken on purpose, and each made a test fail.
+  - Phases 2–4: twenty-three, covering the schema and the demo, the habit engine, goals and routines.
+  - Phase 5's ten:
+    - a badge at 6 days;
+    - a weekly habit's weeks counted as days;
+    - a half-checked morning;
+    - a week of skips as a comeback;
+    - unlocks decided by today's progress;
+    - the score without its double week, or from too little history;
+    - unescaped `LIKE` wildcards;
+    - the watcher without its debounce;
+    - a debounce that keeps its timer.
 
 CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every pull request. It installs the FVM-pinned Flutter, checks that the committed generated code is up to date and complete, then runs format, analyze and test.
 
@@ -281,6 +284,7 @@ CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every p
 - [Phase 2 — Data layer](docs/PHASE_2_SUMMARY.md)
 - [Phase 3 — Habits core](docs/PHASE_3_SUMMARY.md)
 - [Phase 4 — Goals and routines](docs/PHASE_4_SUMMARY.md)
+- [Phase 5 — Achievements, analytics and search](docs/PHASE_5_SUMMARY.md)
 
 ---
 

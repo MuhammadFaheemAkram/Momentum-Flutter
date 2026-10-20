@@ -11,12 +11,16 @@ import 'package:momentum/core/network/fake_momentum_service.dart';
 import 'package:momentum/core/network/momentum_service.dart';
 import 'package:momentum/core/network/network_simulator.dart';
 import 'package:momentum/data/mapper/user_data_mappers.dart';
+import 'package:momentum/data/repository/achievement_repository_impl.dart';
 import 'package:momentum/data/repository/demo_repository_impl.dart';
 import 'package:momentum/data/repository/goal_repository_impl.dart';
 import 'package:momentum/data/repository/habit_log_repository_impl.dart';
 import 'package:momentum/data/repository/habit_repository_impl.dart';
 import 'package:momentum/data/repository/routine_repository_impl.dart';
+import 'package:momentum/data/repository/search_repository_impl.dart';
 import 'package:momentum/domain/model/user_data.dart';
+import 'package:momentum/domain/usecase/achievement_use_cases.dart';
+import 'package:momentum/domain/usecase/analytics_search_use_cases.dart';
 import 'package:momentum/domain/usecase/goal_use_cases.dart';
 import 'package:momentum/domain/usecase/habit_day_use_cases.dart';
 import 'package:momentum/domain/usecase/habit_use_cases.dart';
@@ -27,6 +31,7 @@ import 'package:momentum/domain/usecase/watch_habit_use_cases.dart';
 import 'package:momentum/features/habit_actions/habit_day_actions.dart';
 
 import 'database.dart';
+import 'fakes/fake_recent_searches_repository.dart';
 import 'fakes/fake_settings_repository.dart';
 import 'test_dependencies.dart';
 
@@ -63,6 +68,12 @@ class DataStack {
   late final logs = HabitLogRepositoryImpl(db.habitLogsDao);
   late final routines = RoutineRepositoryImpl(db.routinesDao, ids, clock);
   late final goals = GoalRepositoryImpl(db.goalsDao, ids, clock);
+  late final achievements = AchievementRepositoryImpl(
+    db.achievementsDao,
+    clock,
+  );
+  late final search = SearchRepositoryImpl(db.searchDao);
+  final recentSearches = FakeRecentSearchesRepository();
 
   late final findHabit = FindHabitUseCase(habits);
   late final saveHabit = SaveHabitUseCase(habits);
@@ -90,6 +101,30 @@ class DataStack {
   late final watchGoals = WatchGoalsUseCase(goals, habits, logs, calendar);
   late final saveGoal = SaveGoalUseCase(goals);
   late final deleteGoal = DeleteGoalUseCase(goals);
+  late final achievementSources = AchievementSources(
+    habits,
+    logs,
+    routines,
+    achievements,
+    calendar,
+  );
+  late final watchAchievements = WatchAchievementsUseCase(achievementSources);
+  late final evaluateAchievements = EvaluateAchievementsUseCase(
+    achievementSources,
+    achievements,
+  );
+
+  /// Settles in 10 ms, not the app's 300: real-time tests stay quick.
+  late final watchNewAchievements = WatchNewAchievementsUseCase(
+    achievementSources,
+    achievements,
+    settle: const Duration(milliseconds: 10),
+  );
+  late final watchAnalytics = WatchAnalyticsUseCase(habits, logs, calendar);
+  late final watchSearchResults = WatchSearchResultsUseCase(search);
+  late final watchRecentSearches = WatchRecentSearchesUseCase(recentSearches);
+  late final saveRecentSearch = SaveRecentSearchUseCase(recentSearches);
+  late final clearRecentSearches = ClearRecentSearchesUseCase(recentSearches);
   late final dayActions = HabitDayActions(
     addCheckIn,
     skipHabit,

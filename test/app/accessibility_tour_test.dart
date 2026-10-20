@@ -84,6 +84,8 @@ void main() {
         ('Routines', '/routines'),
         ('Edit routine', '/routines/routine_morning/edit'),
         ('Goals', '/goals'),
+        ('Analytics', '/analytics'),
+        ('Achievements', '/achievements'),
       ]) {
         testWidgets(name, (tester) async {
           await open(tester, at: location, withDemo: true);
@@ -149,6 +151,14 @@ void main() {
         await expectAccessible(tester);
       });
 
+      testWidgets('Search, with results', (tester) async {
+        await open(tester, at: '/search', withDemo: true);
+        await tester.enterText(find.byType(TextField), 'read');
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pumpUntilFound(find.text('Read 20 pages'));
+        await expectAccessible(tester);
+      });
+
       testWidgets('New routine, with its errors', (tester) async {
         await open(tester, at: '/routines/new');
         await tester.tap(find.text('Add a step'));
@@ -164,8 +174,8 @@ void main() {
         ('Today, empty', '/today'),
         ('Habits, empty', '/habits'),
         ('Habit detail, not found', '/habits/h1'),
-        ('Analytics', '/analytics'),
-        ('Achievements', '/achievements'),
+        ('Analytics, nothing yet', '/analytics'),
+        ('Achievements, none yet', '/achievements'),
         ('Settings', '/settings'),
         ('Routines', '/routines'),
         ('New routine', '/routines/new'),

@@ -7,18 +7,25 @@ import 'package:momentum/core/database/daos/routines_dao.dart';
 import 'package:momentum/core/database/daos/user_data_dao.dart';
 import 'package:momentum/core/network/momentum_service.dart';
 import 'package:momentum/di/injection.dart';
+import 'package:momentum/domain/repository/achievement_repository.dart';
 import 'package:momentum/domain/repository/demo_repository.dart';
 import 'package:momentum/domain/repository/goal_repository.dart';
 import 'package:momentum/domain/repository/habit_log_repository.dart';
 import 'package:momentum/domain/repository/habit_repository.dart';
+import 'package:momentum/domain/repository/recent_searches_repository.dart';
 import 'package:momentum/domain/repository/routine_repository.dart';
+import 'package:momentum/domain/repository/search_repository.dart';
 import 'package:momentum/domain/repository/settings_repository.dart';
+import 'package:momentum/domain/usecase/achievement_use_cases.dart';
+import 'package:momentum/features/achievements/cubit/achievements_cubit.dart';
+import 'package:momentum/features/analytics/cubit/analytics_cubit.dart';
 import 'package:momentum/features/goals/cubit/goals_cubit.dart';
 import 'package:momentum/features/habit_detail/cubit/habit_detail_cubit.dart';
 import 'package:momentum/features/habit_form/cubit/habit_form_cubit.dart';
 import 'package:momentum/features/habits/cubit/habits_cubit.dart';
 import 'package:momentum/features/routine_editor/cubit/routine_editor_cubit.dart';
 import 'package:momentum/features/routines/cubit/routines_cubit.dart';
+import 'package:momentum/features/search/bloc/search_bloc.dart';
 import 'package:momentum/features/today/cubit/today_cubit.dart';
 import 'package:momentum/features/welcome/cubit/welcome_cubit.dart';
 
@@ -57,5 +64,16 @@ void main() {
     await getIt<RoutinesCubit>().close();
     await getIt<RoutineEditorCubit>().close();
     await getIt<GoalsCubit>().close();
+    expect(getIt<AchievementRepository>(), isNotNull);
+    expect(getIt<SearchRepository>(), isNotNull);
+    expect(getIt<RecentSearchesRepository>(), isNotNull);
+    expect(getIt<EvaluateAchievementsUseCase>(), isNotNull);
+    expect(
+      getIt<WatchNewAchievementsUseCase>().settle,
+      const Duration(milliseconds: 300),
+    );
+    await getIt<AchievementsCubit>().close();
+    await getIt<AnalyticsCubit>().close();
+    await getIt<SearchBloc>().close();
   });
 }
