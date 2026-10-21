@@ -53,7 +53,7 @@ Phase 6 connects Momentum to the device:
   - an **app-wide `SettingsCubit`** above `MaterialApp.router` (theme mode, dynamic color from the wallpaper's palette on Android 12+, as in DevJourney), and a screen-level **`SettingsToolsCubit`** (permission flow, backup, reset, developer tools).
 - **Backup:**
   - **`BackupDto`**, the whole user state, mapped *out* from the domain models and readable back; the fake service keeps the latest in memory;
-  - **Back up now** ("Backed up 6 habits, 412 logs"), automatic backup, "Last backup: Yesterday, 23:04".
+  - **Back up now** ("Backed up 6 habits, 209 logs"), automatic backup, "Last backup: Yesterday, 23:04".
 - **Reset progress:** logs, routine check-offs and unlocks in one transaction; habits, routines, goals and settings stay.
 - **Developer tools:**
   - Simulate network failure;

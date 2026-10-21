@@ -23,7 +23,7 @@ class RoutinesDao extends DatabaseAccessor<AppDatabase>
           .watch();
 
   /// Every check-off. A few per day: small enough to watch whole, and the
-  /// badges of Phase 5 read their history.
+  /// badges (Early bird) read their history.
   Stream<List<RoutineCheckRow>> watchChecks() => select(routineChecks).watch();
 
   Future<RoutineRow?> findRoutine(String id) =>

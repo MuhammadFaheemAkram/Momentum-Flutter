@@ -18,7 +18,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // The app's unique ID on devices and in stores
+        // (https://developer.android.com/studio/build/application-id.html).
         applicationId = "co.bitfuse.flutter.momentum"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -34,8 +35,9 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // A learning project with no store release: release builds are
+            // signed with the debug keys, so `flutter run --release` works.
+            // A fork that ships adds its own signing config here.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
