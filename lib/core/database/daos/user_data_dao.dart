@@ -4,8 +4,7 @@ import 'package:momentum/core/database/tables/tables.dart';
 
 part 'user_data_dao.g.dart';
 
-/// Every user table's rows: what the demo writes and (in Phase 6) what a
-/// backup reads. Rows, not companions, so writing and reading back give the
+/// Every user table's rows: what the demo writes and what a backup reads. Rows, not companions, so writing and reading back give the
 /// same value.
 class UserRows {
   const UserRows({
@@ -70,6 +69,18 @@ class UserDataDao extends DatabaseAccessor<AppDatabase>
           ..insertAll(goals, rows.goals)
           ..insertAll(achievementUnlocks, rows.unlocks);
       });
+    });
+  }
+
+  /// Deletes the history (logs, routine check-offs, badge unlocks) in
+  /// **one transaction**; habits, routines and goals stay. Nothing derived
+  /// needs resetting: streaks, rates and goal progress are counted from the
+  /// logs, so they start from zero with them.
+  Future<void> resetProgress() {
+    return transaction(() async {
+      await delete(habitLogs).go();
+      await delete(routineChecks).go();
+      await delete(achievementUnlocks).go();
     });
   }
 

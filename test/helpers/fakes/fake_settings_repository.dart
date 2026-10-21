@@ -11,7 +11,7 @@ class FakeSettingsRepository implements SettingsRepository {
   AppSettings _current;
   final _changes = StreamController<AppSettings>.broadcast(sync: true);
 
-  /// Every write, in order: `onboarded`, …
+  /// Every write, in order: `onboarded`, `update`.
   final writes = <String>[];
 
   @override
@@ -29,6 +29,20 @@ class FakeSettingsRepository implements SettingsRepository {
   Future<void> setOnboarded({required bool onboarded}) async {
     writes.add('onboarded');
     publish(_current.copyWith(onboarded: onboarded));
+  }
+
+  @override
+  Future<void> update(AppSettings Function(AppSettings settings) change) async {
+    writes.add('update');
+    publish(change(_current));
+  }
+
+  /// What the next [reload] reads, as if the background isolate saved it.
+  AppSettings? onDevice;
+
+  @override
+  Future<void> reload() async {
+    if (onDevice case final settings?) publish(settings);
   }
 
   void publish(AppSettings settings) {

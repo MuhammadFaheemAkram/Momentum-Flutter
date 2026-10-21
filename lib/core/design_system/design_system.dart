@@ -28,6 +28,7 @@ export 'package:momentum/core/design_system/widgets/habit_avatar.dart';
 export 'package:momentum/core/design_system/widgets/habit_card.dart';
 export 'package:momentum/core/design_system/widgets/habit_pickers.dart';
 export 'package:momentum/core/design_system/widgets/loading_view.dart';
+export 'package:momentum/core/design_system/widgets/reminder_row.dart';
 export 'package:momentum/core/design_system/widgets/routine_card.dart';
 export 'package:momentum/core/design_system/widgets/section_header.dart';
 export 'package:momentum/core/design_system/widgets/segmented_choice.dart';

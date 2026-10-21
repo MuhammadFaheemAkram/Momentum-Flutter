@@ -1,6 +1,7 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
+import 'package:momentum/background/background_entry.dart';
 import 'package:momentum/core/database/app_database.dart';
 import 'package:momentum/core/database/daos/achievements_dao.dart';
 import 'package:momentum/core/database/daos/goals_dao.dart';
@@ -9,7 +10,12 @@ import 'package:momentum/core/database/daos/habits_dao.dart';
 import 'package:momentum/core/database/daos/routines_dao.dart';
 import 'package:momentum/core/database/daos/search_dao.dart';
 import 'package:momentum/core/database/daos/user_data_dao.dart';
+import 'package:momentum/core/platform/local_notifications.dart';
 import 'package:momentum/core/storage/settings_local_data_source.dart';
+import 'package:momentum/domain/model/device_info.dart';
+import 'package:momentum/domain/service/dynamic_color_source.dart';
+import 'package:momentum/domain/service/notification_scheduler.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Registers types the app doesn't own, so they can be injected (and replaced
@@ -63,4 +69,40 @@ abstract class AppModule {
           allowList: SettingsLocalDataSource.allowList,
         ),
       );
+
+  /// One plugin wrapper for the app, under both of its roles: scheduling
+  /// notifications, and reporting taps and actions. The background isolate
+  /// builds its own (`BackgroundGraph`).
+  @lazySingleton
+  LocalNotifications get localNotifications =>
+      LocalNotifications(onBackgroundAction: onNotificationActionInBackground);
+
+  @lazySingleton
+  NotificationScheduler notificationScheduler(LocalNotifications plugin) =>
+      plugin;
+
+  @lazySingleton
+  NotificationInteractions notificationInteractions(
+    LocalNotifications plugin,
+  ) => plugin;
+
+  /// Read once before the first frame, like the preferences: About shows
+  /// the version without a loading state.
+  @preResolve
+  @lazySingleton
+  Future<AppInfo> get appInfo async {
+    final info = await PackageInfo.fromPlatform();
+    return AppInfo(
+      name: info.appName,
+      version: info.version,
+      buildNumber: info.buildNumber,
+    );
+  }
+
+  /// The wallpaper's color, before the first frame: the first frame is
+  /// already in the right colors.
+  @preResolve
+  @lazySingleton
+  Future<DeviceColors> deviceColors(DynamicColorSource source) async =>
+      DeviceColors(wallpaperColor: await source.wallpaperColor());
 }

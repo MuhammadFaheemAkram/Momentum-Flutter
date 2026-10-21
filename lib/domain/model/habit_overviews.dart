@@ -7,6 +7,7 @@ import 'package:momentum/domain/model/calendar_date.dart';
 import 'package:momentum/domain/model/goal.dart';
 import 'package:momentum/domain/model/habit.dart';
 import 'package:momentum/domain/model/habit_log.dart';
+import 'package:momentum/domain/model/planned_notification.dart';
 import 'package:momentum/domain/model/routine.dart';
 
 part 'habit_overviews.freezed.dart';
@@ -75,6 +76,10 @@ abstract class TodayOverview with _$TodayOverview {
 
     /// Every goal, with its progress in its current window.
     @Default(<GoalProgress>[]) List<GoalProgress> goals,
+
+    /// Today's reminders for habits still open, in time order (those past
+    /// too: Today shows the ones still to come).
+    @Default(<PlannedNotification>[]) List<PlannedNotification> reminders,
   }) = _TodayOverview;
 
   const TodayOverview._();

@@ -5,6 +5,7 @@ import 'package:momentum/domain/model/habit.dart';
 import 'package:momentum/domain/model/habit_enums.dart';
 import 'package:momentum/domain/model/habit_log.dart';
 import 'package:momentum/domain/model/routine.dart';
+import 'package:momentum/domain/model/time_of_day_value.dart';
 
 // Short builders for the habit engine's tests. "Today" is Wednesday 21
 // October 2026: its ISO week began on Monday the 19th.
@@ -19,19 +20,22 @@ const monWedFri = HabitSchedule.onWeekdays({1, 3, 5});
 
 Habit habit({
   String id = 'h',
+  String? title,
   HabitSchedule schedule = daily,
   CalendarDate? start,
   int target = 1,
+  TimeOfDayValue? reminder,
   DateTime? archivedAt,
 }) => Habit(
   id: id,
-  title: 'Habit $id',
+  title: title ?? 'Habit $id',
   category: HabitCategory.health,
   color: HabitColor.green,
   icon: HabitIcon.heart,
   schedule: schedule,
   dailyTarget: target,
   startDate: start ?? CalendarDate(2026, 9, 1),
+  reminder: reminder,
   archivedAt: archivedAt,
   createdAt: DateTime.utc(2026, 9),
   sortOrder: 0,

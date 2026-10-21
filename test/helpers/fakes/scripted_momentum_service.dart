@@ -1,3 +1,4 @@
+import 'package:momentum/core/network/dto/backup_dto.dart';
 import 'package:momentum/core/network/dto/demo_dto.dart';
 import 'package:momentum/core/network/momentum_service.dart';
 
@@ -22,4 +23,8 @@ class ScriptedMomentumService implements MomentumService {
     if (reply is DemoDto) return reply;
     throw reply;
   }
+
+  @override
+  Future<BackupReceiptDto> uploadBackup(BackupDto backup) =>
+      throw UnimplementedError('only the demo is scripted');
 }

@@ -1,0 +1,20 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:momentum/domain/model/app_settings.dart';
+import 'package:momentum/domain/model/device_info.dart';
+
+part 'settings_state.freezed.dart';
+
+@freezed
+abstract class SettingsState with _$SettingsState {
+  const factory SettingsState({
+    required AppSettings settings,
+    required DeviceColors deviceColors,
+  }) = _SettingsState;
+
+  const SettingsState._();
+
+  /// The wallpaper's color when dynamic color is on and the device has one;
+  /// otherwise `null`: the app's own green.
+  int? get dynamicSeed =>
+      settings.dynamicColor ? deviceColors.wallpaperColor : null;
+}

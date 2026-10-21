@@ -9,6 +9,7 @@ import 'package:momentum/domain/model/habit_enums.dart';
 import 'package:momentum/domain/repository/habit_repository.dart';
 
 import '../helpers/app_harness.dart';
+import '../helpers/fakes/fake_notification_scheduler.dart';
 
 // Every screen, in light and dark, with text at 200%: no layout overflows
 // (an overflow fails the test), tap targets of at least 48 × 48, a label on
@@ -25,6 +26,8 @@ void main() {
         bool onboarded = true,
         bool withDemo = false,
         Future<void> Function()? beforeLaunch,
+        Map<String, Object> preferences = const {},
+        FakeNotificationScheduler? notifications,
       }) async {
         tester.platformDispatcher
           ..textScaleFactorTestValue = 2
@@ -36,6 +39,8 @@ void main() {
           withDemo: withDemo,
           initialLocation: at,
           beforeLaunch: beforeLaunch,
+          preferences: preferences,
+          notifications: notifications,
         );
         // Phone width, but tall enough to lay out every item of a long list:
         // the checks below see only what is built.
@@ -166,6 +171,45 @@ void main() {
         await tester.tap(find.text('Save'));
         await tester.pumpAndSettle();
         expect(find.text('Give the routine a name'), findsOneWidget);
+        await expectAccessible(tester);
+      });
+
+      testWidgets('Settings, notifications on, backed up', (tester) async {
+        await open(
+          tester,
+          at: '/settings',
+          withDemo: true,
+          notifications: FakeNotificationScheduler(permitted: true),
+          preferences: {
+            'settings.notificationsEnabled': true,
+            'settings.lastBackupAt': DateTime.utc(
+              2026,
+              10,
+              20,
+              21,
+              4,
+            ).toIso8601String(),
+          },
+        );
+        expect(find.text('Missed-habit nudge'), findsOneWidget);
+        await expectAccessible(tester);
+      });
+
+      testWidgets('Settings, notifications denied', (tester) async {
+        await open(
+          tester,
+          at: '/settings',
+          notifications: FakeNotificationScheduler(grantsWhenAsked: false),
+        );
+        await tester.tap(find.widgetWithText(SwitchListTile, 'Notifications'));
+        await tester.pumpUntilFound(find.text('Open settings'));
+        await expectAccessible(tester);
+      });
+
+      testWidgets('Settings, the planned notifications', (tester) async {
+        await open(tester, at: '/settings', withDemo: true);
+        await tester.tap(find.text('Show planned notifications'));
+        await tester.pumpUntilFound(find.text('Planned notifications'));
         await expectAccessible(tester);
       });
 

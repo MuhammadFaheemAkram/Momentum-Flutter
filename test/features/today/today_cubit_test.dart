@@ -1,12 +1,15 @@
+import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:momentum/domain/calculation/habit_history.dart';
 import 'package:momentum/domain/model/habit_overviews.dart';
+import 'package:momentum/domain/model/time_of_day_value.dart';
 import 'package:momentum/domain/model/user_data.dart';
 import 'package:momentum/features/today/cubit/today_cubit.dart';
 import 'package:momentum/features/today/cubit/today_state.dart';
 
 import '../../helpers/data_stack.dart';
 import '../../helpers/habit_builders.dart';
+import '../../helpers/test_dependencies.dart';
 import '../../helpers/wait_for.dart';
 
 void main() {
@@ -24,7 +27,8 @@ void main() {
         logs: doneEvery(oct(15), oct(20), id: 'read'),
       ),
     );
-    cubit = TodayCubit(stack.watchToday, stack.dayActions)..start();
+    cubit = TodayCubit(stack.watchToday, stack.dayActions, stack.clock)
+      ..start();
   });
   tearDown(() async {
     await cubit.close();
@@ -111,5 +115,71 @@ void main() {
       cubit.state.notice!.message,
       'Unarchive the habit to change its days',
     );
+  });
+
+  group('coming up', () {
+    late DateTime now;
+
+    TodayCubit start() {
+      final cubit = TodayCubit(
+        stack.watchToday,
+        stack.dayActions,
+        Clock(() => now),
+      )..start();
+      addTearDown(cubit.close);
+      return cubit;
+    }
+
+    // Replaces the data of the outer setUp.
+    setUp(() async {
+      await stack.seed(
+        UserData(
+          habits: [
+            for (final (id, hour) in [
+              ('early', 7),
+              ('four', 16),
+              ('six', 18),
+              ('eight', 20),
+              ('nine', 21),
+              ('done', 19),
+            ])
+              habit(id: id, title: id, reminder: TimeOfDayValue(hour, 0)),
+          ],
+          logs: [done(today, id: 'done')],
+        ),
+      );
+    });
+
+    test('the next three still to ring today, for habits not done', () async {
+      now = demoNow;
+
+      final state = await waitFor(
+        start(),
+        (s) => s.status == TodayStatus.ready,
+      );
+
+      expect(
+        [for (final r in state.upcoming) r.title],
+        ['four', 'six', 'eight'],
+      );
+    });
+
+    test('moves on by itself when one rings', () async {
+      // 100 ms before 16:00.
+      now = DateTime(2026, 10, 21, 15, 59, 59, 900);
+      final cubit = start();
+      await waitFor(cubit, (s) => s.upcoming.isNotEmpty);
+
+      now = DateTime(2026, 10, 21, 16, 0, 0, 1);
+      final state = await waitFor(
+        cubit,
+        (s) => s.upcoming.first.title != 'four',
+      );
+
+      expect(
+        [for (final r in state.upcoming) r.title],
+        ['six', 'eight', 'nine'],
+      );
+    });
   });
 }

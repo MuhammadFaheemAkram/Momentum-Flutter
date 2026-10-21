@@ -3,8 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:momentum/core/design_system/design_system.dart';
 import 'package:momentum/domain/calculation/overviews.dart';
+import 'package:momentum/domain/model/planned_notification.dart';
 import 'package:momentum/domain/model/routine.dart';
+import 'package:momentum/domain/model/time_of_day_value.dart';
 import 'package:momentum/features/habit_actions/habit_notice.dart';
 import 'package:momentum/features/shell/shell_drawer_scope.dart';
 import 'package:momentum/features/today/cubit/today_cubit.dart';
@@ -189,5 +192,37 @@ void main() {
     expect(find.text('Skipped Morning run today'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     verify(() => cubit.undoNotice(notice)).called(1);
+  });
+
+  testWidgets('coming up: the next reminders today, each opening its habit', (
+    tester,
+  ) async {
+    final reminder = PlannedNotification(
+      id: 1,
+      kind: NotificationKind.reminder,
+      day: today,
+      time: TimeOfDayValue(18, 0),
+      title: 'Read 20 pages',
+      body: 'Due today',
+      target: const NotificationTarget.habit('read'),
+      habitId: 'read',
+    );
+
+    await pump(tester, ready.copyWith(upcoming: [reminder]));
+
+    expect(find.text('Coming up'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(ReminderRow),
+        matching: find.textContaining(RegExp(r'^Reminder at 6:00\sPM$')),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('nothing coming up: no section', (tester) async {
+    await pump(tester, ready);
+
+    expect(find.text('Coming up'), findsNothing);
   });
 }

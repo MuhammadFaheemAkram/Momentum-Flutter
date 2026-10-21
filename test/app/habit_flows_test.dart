@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:momentum/core/design_system/design_system.dart';
 import 'package:momentum/di/injection.dart';
 import 'package:momentum/domain/model/calendar_date.dart';
 import 'package:momentum/domain/repository/habit_log_repository.dart';
@@ -12,7 +13,9 @@ import '../helpers/app_harness.dart';
 void main() {
   tearDown(getIt.reset);
 
-  Finder habitTitled(String title) => find.text(title);
+  /// A habit's card (not its "Coming up" reminder).
+  Finder habitTitled(String title) =>
+      find.descendant(of: find.byType(HabitCard), matching: find.text(title));
 
   testWidgets('create a habit: it is due today; completing it fills the ring '
       'and starts a streak', (tester) async {

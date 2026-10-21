@@ -69,4 +69,20 @@ void main() {
     expect(stored.logs, hasLength(3));
     expect(stored.unlocks, hasLength(1));
   });
+
+  test('resetProgress clears logs, check-offs and unlocks; habits, routines '
+      'and goals stay', () async {
+    await db.userDataDao.replaceAll(fullUserData().toRows());
+
+    await db.userDataDao.resetProgress();
+
+    final stored = await db.userDataDao.readAll();
+    expect(stored.logs, isEmpty);
+    expect(stored.routineChecks, isEmpty);
+    expect(stored.unlocks, isEmpty);
+    expect(stored.habits, hasLength(3));
+    expect(stored.routines, hasLength(1));
+    expect(stored.routineItems, hasLength(3));
+    expect(stored.goals, hasLength(2));
+  });
 }

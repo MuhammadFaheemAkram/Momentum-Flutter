@@ -48,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   /// Opens `momentum.sqlite` in the app's documents directory. Tests pass an
   /// in-memory [executor] instead.
   ///
-  /// `shareAcrossIsolates`: from Phase 6, background work runs in a second
+  /// `shareAcrossIsolates`: background work runs in a second
   /// isolate (`workmanager`) while the app may be open. With this option
   /// both isolates talk to one drift server that owns the only connection,
   /// so they never write the file at once, and each sees the other's

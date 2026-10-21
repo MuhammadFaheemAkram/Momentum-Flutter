@@ -29,6 +29,7 @@ void main() {
       stack.saveHabit,
       stack.deleteHabit,
       stack.calendar,
+      stack.settings,
       habitId,
     );
     addTearDown(cubit.close);

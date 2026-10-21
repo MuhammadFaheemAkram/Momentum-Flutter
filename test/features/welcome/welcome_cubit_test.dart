@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:momentum/core/common/app_exception.dart';
+import 'package:momentum/core/network/dto/backup_dto.dart';
 import 'package:momentum/core/network/dto/demo_dto.dart';
 import 'package:momentum/core/network/momentum_service.dart';
 import 'package:momentum/features/welcome/cubit/welcome_cubit.dart';
@@ -96,4 +97,8 @@ class _GatedService implements MomentumService {
     await gate;
     return bundledDemo();
   }
+
+  @override
+  Future<BackupReceiptDto> uploadBackup(BackupDto backup) =>
+      throw UnimplementedError();
 }

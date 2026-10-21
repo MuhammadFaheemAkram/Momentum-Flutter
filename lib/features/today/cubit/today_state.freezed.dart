@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TodayState {
 
- TodayStatus get status; TodayOverview? get overview;/// A one-time message (a SnackBar); [noticeSerial] makes each one
+ TodayStatus get status; TodayOverview? get overview;/// The next reminders still to ring today, soonest first.
+ List<PlannedNotification> get upcoming;/// A one-time message (a SnackBar); [noticeSerial] makes each one
 /// distinct, so the same message twice still shows twice.
  HabitNotice? get notice; int get noticeSerial;
 /// Create a copy of TodayState
@@ -29,20 +30,20 @@ $TodayStateCopyWith<TodayState> get copyWith => _$TodayStateCopyWithImpl<TodaySt
 @override
 bool operator ==(Object other) {
   final _this = this as TodayState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TodayState&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.overview, _this.overview) || other.overview == _this.overview)&&(identical(other.notice, _this.notice) || other.notice == _this.notice)&&(identical(other.noticeSerial, _this.noticeSerial) || other.noticeSerial == _this.noticeSerial));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TodayState&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.overview, _this.overview) || other.overview == _this.overview)&&const DeepCollectionEquality().equals(other.upcoming, _this.upcoming)&&(identical(other.notice, _this.notice) || other.notice == _this.notice)&&(identical(other.noticeSerial, _this.noticeSerial) || other.noticeSerial == _this.noticeSerial));
 }
 
 
 @override
 int get hashCode {
   final _this = this as TodayState;
-  return Object.hash(runtimeType,_this.status,_this.overview,_this.notice,_this.noticeSerial);
+  return Object.hash(runtimeType,_this.status,_this.overview,const DeepCollectionEquality().hash(_this.upcoming),_this.notice,_this.noticeSerial);
 }
 
 @override
 String toString() {
   final _this = this as TodayState;
-  return 'TodayState(status: ${_this.status}, overview: ${_this.overview}, notice: ${_this.notice}, noticeSerial: ${_this.noticeSerial})';
+  return 'TodayState(status: ${_this.status}, overview: ${_this.overview}, upcoming: ${_this.upcoming}, notice: ${_this.notice}, noticeSerial: ${_this.noticeSerial})';
 }
 
 
@@ -53,7 +54,7 @@ abstract mixin class $TodayStateCopyWith<$Res>  {
   factory $TodayStateCopyWith(TodayState value, $Res Function(TodayState) _then) = _$TodayStateCopyWithImpl;
 @useResult
 $Res call({
- TodayStatus status, TodayOverview? overview, HabitNotice? notice, int noticeSerial
+ TodayStatus status, TodayOverview? overview, List<PlannedNotification> upcoming, HabitNotice? notice, int noticeSerial
 });
 
 
@@ -70,11 +71,12 @@ class _$TodayStateCopyWithImpl<$Res>
 
 /// Create a copy of TodayState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? overview = freezed,Object? notice = freezed,Object? noticeSerial = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? overview = freezed,Object? upcoming = null,Object? notice = freezed,Object? noticeSerial = null,}) {
   return _then(TodayState(
 status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as TodayStatus,overview: freezed == overview ? _self.overview : overview // ignore: cast_nullable_to_non_nullable
-as TodayOverview?,notice: freezed == notice ? _self.notice : notice // ignore: cast_nullable_to_non_nullable
+as TodayOverview?,upcoming: null == upcoming ? _self.upcoming : upcoming // ignore: cast_nullable_to_non_nullable
+as List<PlannedNotification>,notice: freezed == notice ? _self.notice : notice // ignore: cast_nullable_to_non_nullable
 as HabitNotice?,noticeSerial: null == noticeSerial ? _self.noticeSerial : noticeSerial // ignore: cast_nullable_to_non_nullable
 as int,
   ));
@@ -173,10 +175,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( TodayStatus status,  TodayOverview? overview,  HabitNotice? notice,  int noticeSerial)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( TodayStatus status,  TodayOverview? overview,  List<PlannedNotification> upcoming,  HabitNotice? notice,  int noticeSerial)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TodayState() when $default != null:
-return $default(_that.status,_that.overview,_that.notice,_that.noticeSerial);case _:
+return $default(_that.status,_that.overview,_that.upcoming,_that.notice,_that.noticeSerial);case _:
   return orElse();
 
 }
@@ -194,10 +196,10 @@ return $default(_that.status,_that.overview,_that.notice,_that.noticeSerial);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( TodayStatus status,  TodayOverview? overview,  HabitNotice? notice,  int noticeSerial)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( TodayStatus status,  TodayOverview? overview,  List<PlannedNotification> upcoming,  HabitNotice? notice,  int noticeSerial)  $default,) {final _that = this;
 switch (_that) {
 case _TodayState():
-return $default(_that.status,_that.overview,_that.notice,_that.noticeSerial);case _:
+return $default(_that.status,_that.overview,_that.upcoming,_that.notice,_that.noticeSerial);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -214,10 +216,10 @@ return $default(_that.status,_that.overview,_that.notice,_that.noticeSerial);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( TodayStatus status,  TodayOverview? overview,  HabitNotice? notice,  int noticeSerial)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( TodayStatus status,  TodayOverview? overview,  List<PlannedNotification> upcoming,  HabitNotice? notice,  int noticeSerial)?  $default,) {final _that = this;
 switch (_that) {
 case _TodayState() when $default != null:
-return $default(_that.status,_that.overview,_that.notice,_that.noticeSerial);case _:
+return $default(_that.status,_that.overview,_that.upcoming,_that.notice,_that.noticeSerial);case _:
   return null;
 
 }
@@ -229,11 +231,20 @@ return $default(_that.status,_that.overview,_that.notice,_that.noticeSerial);cas
 
 
 class _TodayState implements TodayState {
-  const _TodayState({this.status = TodayStatus.loading, this.overview, this.notice, this.noticeSerial = 0});
+  const _TodayState({this.status = TodayStatus.loading, this.overview,  List<PlannedNotification> upcoming = const <PlannedNotification>[], this.notice, this.noticeSerial = 0}): _upcoming = upcoming;
   
 
 @override@JsonKey() final  TodayStatus status;
 @override final  TodayOverview? overview;
+/// The next reminders still to ring today, soonest first.
+ final  List<PlannedNotification> _upcoming;
+/// The next reminders still to ring today, soonest first.
+@override@JsonKey() List<PlannedNotification> get upcoming {
+  if (_upcoming is EqualUnmodifiableListView) return _upcoming;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_upcoming);
+}
+
 /// A one-time message (a SnackBar); [noticeSerial] makes each one
 /// distinct, so the same message twice still shows twice.
 @override final  HabitNotice? notice;
@@ -249,18 +260,18 @@ _$TodayStateCopyWith<_TodayState> get copyWith => __$TodayStateCopyWithImpl<_Tod
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _TodayState&&(identical(other.status, status) || other.status == status)&&(identical(other.overview, overview) || other.overview == overview)&&(identical(other.notice, notice) || other.notice == notice)&&(identical(other.noticeSerial, noticeSerial) || other.noticeSerial == noticeSerial));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _TodayState&&(identical(other.status, status) || other.status == status)&&(identical(other.overview, overview) || other.overview == overview)&&const DeepCollectionEquality().equals(other.upcoming, _upcoming)&&(identical(other.notice, notice) || other.notice == notice)&&(identical(other.noticeSerial, noticeSerial) || other.noticeSerial == noticeSerial));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,status,overview,notice,noticeSerial);
+    return Object.hash(runtimeType,status,overview,const DeepCollectionEquality().hash(_upcoming),notice,noticeSerial);
 }
 
 @override
 String toString() {
-    return 'TodayState(status: $status, overview: $overview, notice: $notice, noticeSerial: $noticeSerial)';
+    return 'TodayState(status: $status, overview: $overview, upcoming: $upcoming, notice: $notice, noticeSerial: $noticeSerial)';
 }
 
 
@@ -271,7 +282,7 @@ abstract mixin class _$TodayStateCopyWith<$Res> implements $TodayStateCopyWith<$
   factory _$TodayStateCopyWith(_TodayState value, $Res Function(_TodayState) _then) = __$TodayStateCopyWithImpl;
 @override @useResult
 $Res call({
- TodayStatus status, TodayOverview? overview, HabitNotice? notice, int noticeSerial
+ TodayStatus status, TodayOverview? overview, List<PlannedNotification> upcoming, HabitNotice? notice, int noticeSerial
 });
 
 
@@ -288,11 +299,12 @@ class __$TodayStateCopyWithImpl<$Res>
 
 /// Create a copy of TodayState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? overview = freezed,Object? notice = freezed,Object? noticeSerial = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? overview = freezed,Object? upcoming = null,Object? notice = freezed,Object? noticeSerial = null,}) {
   return _then(_TodayState(
 status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as TodayStatus,overview: freezed == overview ? _self.overview : overview // ignore: cast_nullable_to_non_nullable
-as TodayOverview?,notice: freezed == notice ? _self.notice : notice // ignore: cast_nullable_to_non_nullable
+as TodayOverview?,upcoming: null == upcoming ? _self._upcoming : upcoming // ignore: cast_nullable_to_non_nullable
+as List<PlannedNotification>,notice: freezed == notice ? _self.notice : notice // ignore: cast_nullable_to_non_nullable
 as HabitNotice?,noticeSerial: null == noticeSerial ? _self.noticeSerial : noticeSerial // ignore: cast_nullable_to_non_nullable
 as int,
   ));

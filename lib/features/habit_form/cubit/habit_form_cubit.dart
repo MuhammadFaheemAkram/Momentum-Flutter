@@ -6,6 +6,7 @@ import 'package:momentum/domain/calculation/validation.dart';
 import 'package:momentum/domain/model/calendar_date.dart';
 import 'package:momentum/domain/model/habit_enums.dart';
 import 'package:momentum/domain/model/time_of_day_value.dart';
+import 'package:momentum/domain/repository/settings_repository.dart';
 import 'package:momentum/domain/usecase/habit_use_cases.dart';
 import 'package:momentum/features/habit_form/cubit/habit_form_state.dart';
 
@@ -19,6 +20,7 @@ class HabitFormCubit extends Cubit<HabitFormState> {
     this._saveHabit,
     this._deleteHabit,
     this._clock,
+    this._settings,
     @factoryParam this.habitId,
   ) : super(const HabitFormState());
 
@@ -26,6 +28,7 @@ class HabitFormCubit extends Cubit<HabitFormState> {
   final SaveHabitUseCase _saveHabit;
   final DeleteHabitUseCase _deleteHabit;
   final CalendarClock _clock;
+  final SettingsRepository _settings;
   final String? habitId;
 
   bool get isNew => habitId == null;
@@ -101,6 +104,10 @@ class HabitFormCubit extends Cubit<HabitFormState> {
 
   void startDateChanged(CalendarDate day) =>
       _update((v) => v.copyWith(startDate: day));
+
+  /// The reminder turned on (at Settings' default reminder time) or off.
+  void reminderSwitched({required bool on}) =>
+      reminderChanged(on ? _settings.current.defaultReminder : null);
 
   void reminderChanged(TimeOfDayValue? reminder) =>
       _update((v) => v.copyWith(reminder: reminder));

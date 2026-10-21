@@ -5,7 +5,7 @@ import 'package:momentum/core/common/app_exception.dart';
 /// failure.
 ///
 /// [failRequests] is the developer switch "Simulate network failure"
-/// (Settings → Developer, Phase 6). It lives in memory: off at every launch.
+/// (Settings → Developer). It lives in memory: off at every launch.
 @lazySingleton
 class NetworkSimulator {
   NetworkSimulator({

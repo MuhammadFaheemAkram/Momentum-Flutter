@@ -4,6 +4,7 @@ import 'package:momentum/app/momentum_app.dart';
 import 'package:momentum/di/injection.dart';
 import 'package:momentum/domain/repository/demo_repository.dart';
 
+import 'fakes/fake_notification_scheduler.dart';
 import 'pump_app.dart';
 import 'test_dependencies.dart';
 
@@ -12,6 +13,9 @@ import 'test_dependencies.dart';
 /// first launch, optionally on a deep link, optionally with the demo loaded
 /// ([withDemo]), as of [demoNow]. [beforeLaunch] runs once the graph exists
 /// and before the first frame. Pair it with `tearDown(getIt.reset)`.
+///
+/// [preferences] adds saved settings (raw keys); [notifications] stands in
+/// for the device's notifications.
 ///
 /// [tall] lays the screen out on a phone's width but tall enough to build
 /// every item of a long list.
@@ -22,9 +26,12 @@ Future<void> pumpMomentum(
   String? initialLocation,
   Future<void> Function()? beforeLaunch,
   bool tall = false,
+  Map<String, Object> preferences = const {},
+  FakeNotificationScheduler? notifications,
 }) async {
   await configureTestDependencies(
-    preferences: onboarded ? onboardedPreferences : const {},
+    preferences: {if (onboarded) ...onboardedPreferences, ...preferences},
+    notifications: notifications,
   );
   if (withDemo) {
     // On the real event loop: before the first pump nothing advances the

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +11,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   FakeMomentumService service(NetworkSimulator network) =>
-      FakeMomentumService(AssetJsonLoader(rootBundle), network);
+      FakeMomentumService(AssetJsonLoader(rootBundle), network, const Clock());
 
   test('serves the bundled demo', () async {
     final demo = await service(NetworkSimulator(latency: Duration.zero))

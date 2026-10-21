@@ -112,7 +112,7 @@ class WatchAchievementsUseCase {
 }
 
 /// Records the badges whose rules are met now but that aren't unlocked
-/// yet, once each, and returns them. The background tasks run it (Phase 6);
+/// yet, once each, and returns them. The background tasks run it;
 /// the app watches with [WatchNewAchievementsUseCase].
 @injectable
 class EvaluateAchievementsUseCase {

@@ -144,3 +144,31 @@ class RestoreHabitDayUseCase {
     () => previous == null ? _logs.clear(habitId, day) : _logs.putLog(previous),
   );
 }
+
+/// "Mark done" on a reminder: today done, at its full daily target. A day
+/// already done keeps its count ("9 / 8" stays 9).
+@injectable
+class MarkHabitDoneUseCase {
+  const MarkHabitDoneUseCase(this._habits, this._logs, this._clock);
+
+  final HabitRepository _habits;
+  final HabitLogRepository _logs;
+  final CalendarClock _clock;
+
+  Future<Result<void>> call(String habitId) async {
+    final today = _clock.today;
+    final Habit habit;
+    try {
+      habit = await checkHabitDay(_habits, habitId, today, today: today);
+    } on AppException catch (exception) {
+      return Err(exception);
+    }
+    final log = await _logs.findLog(habitId, today);
+    if (log != null && !log.skipped && log.count >= habit.dailyTarget) {
+      return const Ok(null);
+    }
+    return _logs.putLog(
+      HabitLog(habitId: habitId, day: today, count: habit.dailyTarget),
+    );
+  }
+}

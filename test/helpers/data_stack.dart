@@ -12,25 +12,31 @@ import 'package:momentum/core/network/momentum_service.dart';
 import 'package:momentum/core/network/network_simulator.dart';
 import 'package:momentum/data/mapper/user_data_mappers.dart';
 import 'package:momentum/data/repository/achievement_repository_impl.dart';
+import 'package:momentum/data/repository/backup_repository_impl.dart';
 import 'package:momentum/data/repository/demo_repository_impl.dart';
 import 'package:momentum/data/repository/goal_repository_impl.dart';
 import 'package:momentum/data/repository/habit_log_repository_impl.dart';
 import 'package:momentum/data/repository/habit_repository_impl.dart';
 import 'package:momentum/data/repository/routine_repository_impl.dart';
 import 'package:momentum/data/repository/search_repository_impl.dart';
+import 'package:momentum/data/repository/user_data_repository_impl.dart';
 import 'package:momentum/domain/model/user_data.dart';
 import 'package:momentum/domain/usecase/achievement_use_cases.dart';
 import 'package:momentum/domain/usecase/analytics_search_use_cases.dart';
+import 'package:momentum/domain/usecase/background_use_cases.dart';
+import 'package:momentum/domain/usecase/backup_use_cases.dart';
 import 'package:momentum/domain/usecase/goal_use_cases.dart';
 import 'package:momentum/domain/usecase/habit_day_use_cases.dart';
 import 'package:momentum/domain/usecase/habit_use_cases.dart';
 import 'package:momentum/domain/usecase/load_demo_use_case.dart';
+import 'package:momentum/domain/usecase/notification_use_cases.dart';
 import 'package:momentum/domain/usecase/routine_use_cases.dart';
 import 'package:momentum/domain/usecase/start_empty_use_case.dart';
 import 'package:momentum/domain/usecase/watch_habit_use_cases.dart';
 import 'package:momentum/features/habit_actions/habit_day_actions.dart';
 
 import 'database.dart';
+import 'fakes/fake_notification_scheduler.dart';
 import 'fakes/fake_recent_searches_repository.dart';
 import 'fakes/fake_settings_repository.dart';
 import 'test_dependencies.dart';
@@ -46,7 +52,8 @@ class DataStack {
     : clock = Clock.fixed(now ?? demoNow),
       network = NetworkSimulator(latency: Duration.zero) {
     this.service =
-        service ?? FakeMomentumService(AssetJsonLoader(rootBundle), network);
+        service ??
+        FakeMomentumService(AssetJsonLoader(rootBundle), network, clock);
   }
 
   final Clock clock;
@@ -125,6 +132,49 @@ class DataStack {
   late final watchRecentSearches = WatchRecentSearchesUseCase(recentSearches);
   late final saveRecentSearch = SaveRecentSearchUseCase(recentSearches);
   late final clearRecentSearches = ClearRecentSearchesUseCase(recentSearches);
+  late final markDone = MarkHabitDoneUseCase(habits, logs, calendar);
+
+  /// The device's notifications: none allowed until asked.
+  final notifications = FakeNotificationScheduler();
+  late final syncNotifications = SyncNotificationsUseCase(
+    settings,
+    habits,
+    logs,
+    notifications,
+    clock,
+  );
+
+  /// Settles in 10 ms, like [watchNewAchievements].
+  late final keepNotificationsInSync = KeepNotificationsInSyncUseCase(
+    syncNotifications,
+    habits,
+    logs,
+    settings,
+    calendar,
+    settle: const Duration(milliseconds: 10),
+  );
+  late final setNotificationsEnabled = SetNotificationsEnabledUseCase(
+    settings,
+    notifications,
+  );
+  late final previewPlan = PreviewNotificationPlanUseCase(
+    settings,
+    habits,
+    logs,
+    notifications,
+    clock,
+  );
+  late final userData = UserDataRepositoryImpl(db.userDataDao);
+  late final backups = BackupRepositoryImpl(service, clock);
+  late final backUpNow = BackUpNowUseCase(userData, backups, settings);
+  late final autoBackup = AutoBackupUseCase(backUpNow, settings, clock);
+  late final resetProgress = ResetProgressUseCase(userData);
+  late final runBackgroundTasks = RunBackgroundTasksUseCase(
+    evaluateAchievements,
+    autoBackup,
+    syncNotifications,
+  );
+
   late final dayActions = HabitDayActions(
     addCheckIn,
     skipHabit,
@@ -144,4 +194,5 @@ class DataStack {
 Future<DemoDto> bundledDemo() => FakeMomentumService(
   AssetJsonLoader(rootBundle),
   NetworkSimulator(latency: Duration.zero),
+  const Clock(),
 ).fetchDemo();

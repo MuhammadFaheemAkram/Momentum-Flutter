@@ -297,8 +297,7 @@ class _FieldsState extends State<_Fields> {
           title: const Text('Remind me'),
           subtitle: const Text('On the days it is due, until it is done'),
           value: values.reminder != null,
-          onChanged: (on) =>
-              cubit.reminderChanged(on ? TimeOfDayValue(9, 0) : null),
+          onChanged: (on) => cubit.reminderSwitched(on: on),
         ),
         if (values.reminder case final reminder?)
           ListTile(

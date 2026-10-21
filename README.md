@@ -45,15 +45,15 @@ Momentum is built in **strict, reviewable phases**. Each phase ends with:
 | 3 | The schedule engine (due days, streaks, perfect days, rates), Today, Habits, the habit form and Habit detail with a calendar you can backfill | ✅ Done |
 | 4 | Goals counted per day, ISO week or month; routines with steps reordered by drag or screen reader, checked off each day; both on Today | ✅ Done |
 | 5 | Ten badges as rules over the history, unlocked once and celebrated; analytics with the consistency score; debounced search with recent searches | ✅ Done |
-| 6 | Notifications, background tasks and settings | ⏳ Next |
-| 7 | Open-source polish and final docs | |
+| 6 | Reminders planned a week ahead and kept in step, with "Mark done"; background tasks in a second isolate; Settings (appearance, dynamic color, notifications, backup, reset, developer tools) | ✅ Done |
+| 7 | Open-source polish and final docs | ⏳ Next |
 
 ---
 
-## ✨ Features (the plan)
+## ✨ Features
 
 - 🚀 **First launch:** explore with a demo (habits, 8 weeks of history, routines, goals) or start empty
-- ☀️ **Today:** a ring for today's due habits, the perfect-day streak, complete, +1, skip and undo, today's routines and goals, this week at a glance
+- ☀️ **Today:** a ring for today's due habits, the perfect-day streak, complete, +1, skip and undo, today's routines and goals, the reminders coming up, this week at a glance
 - ✅ **Habits:** daily, on chosen weekdays or N times a week; a daily target ("8 glasses"); start date, reminder time, color and icon; search, categories, archive
 - 🗓️ **Habit detail:** a calendar heatmap you can backfill, current and longest streak, completion rate, a weekly chart
 - 🌅 **Routines:** ordered items, drag to reorder (with screen-reader move actions), checked off for today
@@ -62,7 +62,7 @@ Momentum is built in **strict, reviewable phases**. Each phase ends with:
 - 📈 **Analytics:** completion rate, consistency score, weekly and monthly bars, streak history, your most successful habit, categories
 - 🔎 **Search:** habits, routines, goals and achievements
 - 🔔 **Reminders:** only on due days and not once done, a "Mark done" action, a missed-habit nudge and a daily summary
-- ⚙️ **Settings:** appearance, dynamic color (Android 12+), notifications, simulated backups, reset progress, developer tools
+- ⚙️ **Settings:** appearance, dynamic color (Android 12+), notifications with the nudge and summary times, a default reminder time, backups (now, or daily in the background), reset progress, developer tools (simulate failure, run the background tasks, show the plan)
 - ♿ **Accessible:** dark mode and large text on every screen, labelled controls, never color alone, checked by a test tour that grows with the app
 
 ---
@@ -88,9 +88,10 @@ Packages arrive in the phase that first needs them.
 | Charts | `fl_chart` (weekly bars, each with a written summary); the calendar heatmap is built from widgets | 3 |
 | Text and time | `intl` (dates, 12- or 24-hour times as the device has them); `characters` (lengths as people count them) | 3 |
 | iOS touches | `cupertino_ui`: the time wheel and alerts on iOS | 3 |
+| Notifications | `flutter_local_notifications` (scheduled, with a "Mark done" action) + `timezone` + `flutter_timezone` | 6 |
+| Background work | `workmanager` (WorkManager on Android, BGTaskScheduler on iOS) | 6 |
+| Theme and info | `dynamic_color` (the wallpaper's palette, Android 12+); `package_info_plus` (the version in About) | 6 |
 | Testing | `flutter_test`, `bloc_test`, `mocktail`, `fake_async` | 1–2 |
-
-Planned: `flutter_local_notifications`, `timezone`, `workmanager`, `dynamic_color`, `package_info_plus` (Phase 6).
 
 ---
 
@@ -100,8 +101,9 @@ A clean, layered architecture with a one-directional data flow:
 
 ```
 lib/
-├── app/        → root widget (MaterialApp.router, themes)
-├── core/       → design system, navigation, the database, the fake service, storage; (later) notifications, background work
+├── app/        → root widget (SettingsCubit, themes, the router, app-wide watchers)
+├── background/ → the OS's entry points (workmanager, a notification action) and their own small DI graph
+├── core/       → design system, navigation, the database, the fake service, storage, platform (notifications, workmanager, dynamic color)
 ├── data/       → repository implementations + mappers (rows ⇄ models, the demo DTO → models)
 ├── domain/     → models, the pure habit engine (calculation/), contracts, use cases
 ├── features/   → one folder per screen (Page + View + Cubit/Bloc)
@@ -145,6 +147,23 @@ habits + logs + today ─────────▶ consistencyScore · buildAn
 - **Badges** are rules in code; only the moment each is earned is stored. While the app runs, a watcher re-checks the rules once a burst of writes settles, records what's newly earned (once, in a transaction) and celebrates it with a SnackBar on whatever screen is showing.
 - **Routines** are written whole: a save rewrites every step's position in one transaction, and steps keep their ids, so their check-offs follow them when reordered.
 
+**Notifications and background work:**
+
+```
+habits + logs + settings + now ──▶ planNotifications   pure: 7 days, ≤ 60, soonest first, stable ids
+                                         │
+                   SyncNotificationsUseCase: plan vs pending ──▶ cancel stale · schedule new or changed · keep the rest
+                                         ▲
+  app:  KeepNotificationsInSync (after every change, settled; at midnight) · on resume (settings reloaded first)
+  OS:   workmanager ──▶ callbackDispatcher ──▶ BackgroundGraph ──▶ RunBackgroundTasks: badges · backup if due · sync
+        "Mark done" ──▶ onNotificationActionInBackground ──▶ BackgroundGraph ──▶ MarkHabitDone · sync
+```
+
+- **A rolling window, not repeating notifications:** each due day's reminder is its own notification, so a habit done today has none left today, a Mon / Wed / Fri habit rings only on its days, and the nudge says how many are left. Planning again after every change keeps the week rolling.
+- **Only the difference is applied:** ids are stable hashes of (kind, habit, day), and each payload carries its time, so the sync can tell an unchanged notification from a moved one.
+- **The background isolate runs the same use cases** on its own small graph, built by hand, against the same database (drift's `shareAcrossIsolates`): the app's screens see its writes at once.
+- **Permission is part of the setting:** the switch reads "on" only while the system allows notifications; denied, Settings shows the way to the system settings, and a permission revoked later turns it off on the next resume.
+
 **Navigation:**
 
 ```
@@ -182,16 +201,18 @@ Momentum/
 ├── drift_schemas/                  # every exported schema version (v1)
 ├── lib/
 │   ├── main.dart                   # binding → await configureDependencies() → runApp
-│   ├── app/                        # MomentumApp: themes and the router
+│   ├── app/                        # MomentumApp: SettingsCubit, themes, the router, badge and notification watchers, taps
+│   ├── background/                 # background_entry (callbackDispatcher, the "Mark done" handler), background_graph
 │   ├── core/
 │   │   ├── design_system/          # theme/ (AppTheme, AppColors, HabitPalette, tokens), widgets/ (state views, SectionHeader), large_text
 │   │   ├── common/                 # Result, AppException, guardWrite, IdGenerator, CalendarClock
 │   │   ├── database/               # AppDatabase, tables/, daos/, converters
 │   │   ├── navigation/             # app_routes (+ .g.dart), app_router, first_launch_redirect, stream_listenable, fallback Close button
-│   │   ├── network/                # MomentumService (fake), dto/, NetworkSimulator, AssetJsonLoader
+│   │   ├── network/                # MomentumService (fake: the demo, backups), dto/, NetworkSimulator, AssetJsonLoader
+│   │   ├── platform/               # LocalNotifications, WorkmanagerBackgroundWork, MaterialYouColorSource
 │   │   └── storage/                # SettingsLocalDataSource
-│   ├── data/                       # mapper/ (rows ⇄ models, the demo), repository/ (habits, logs, routines, goals, badges, search, demo, settings)
-│   ├── domain/                     # model/ (Habit, HabitSchedule, HabitLog, …, read models), calculation/ (the engine, validation), repository/, usecase/
+│   ├── data/                       # mapper/ (rows ⇄ models, the demo, backups), repository/ (habits, logs, routines, goals, badges, search, demo, settings, backup, user data)
+│   ├── domain/                     # model/ (Habit, HabitSchedule, HabitLog, PlannedNotification, …), calculation/ (the engine, the notification planner, validation), repository/, service/ (notifications, background work, colors), usecase/
 │   ├── features/                   # welcome, shell (tabs + drawer), today, habits, habit_actions (shared), habit_form, habit_detail,
 │   │                               # routines, routine_editor, goals, analytics, achievements, search, settings, about
 │   └── di/                         # injection.dart (+ .config.dart), app_module.dart
@@ -219,6 +240,12 @@ Generated code (`*.g.dart`, `*.config.dart`) is committed, so the app runs strai
 fvm dart run build_runner build
 ```
 
+**Trying notifications and background work:**
+- Turn notifications on in Settings, then **Developer → Show planned notifications** lists the plan and how many are scheduled. Give a habit a reminder a few minutes ahead to see one ring, with **Mark done**.
+- **Developer → Run background tasks now** runs the same use case the OS runs.
+- To run the real Android job (in its background isolate) on an emulator or a device: `adb shell cmd jobscheduler run -f -n androidx.work.systemjobscheduler co.bitfuse.flutter.momentum 0` (the id is in `adb shell dumpsys jobscheduler`). WorkManager makes the first run soon after install, then about every 6 hours.
+- iOS decides when a `BGAppRefreshTask` runs. To start it from Xcode's debugger, pause the app and run `e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"co.bitfuse.flutter.momentum.maintenance"]`.
+
 ---
 
 ## ✅ Testing
@@ -229,31 +256,23 @@ fvm dart format --output=none --set-exit-if-changed .
 fvm flutter test
 ```
 
-**541 tests** after Phase 5:
+**667 tests** after Phase 6:
 
 | Area | Tests | What they cover |
 |---|---:|---|
-| `domain/` | 156 | the engine: every schedule and streak edge, perfect days, the rate, goal windows and progress, today's routines; every badge rule at its edge (6 vs 7 days, 99 vs 100, 4 vs 5 mornings, a score of 79 vs 80, a week of skips is no comeback) and unlocks that stay; the consistency score's weights and minimum; the analytics series; validation; the use cases' rules |
-| `data/` | 49 | the demo mapper, the shipped demo as of every weekday, a round trip of every field through the database, the repositories |
-| `core/` | 148 | the schema's constraints and cascades; the DAOs (a badge recorded once, `LIKE` with `%` and `_` as plain characters, routines saved in one transaction); the midnight clock and a debounce that cancels its timer; navigation; the design system |
-| `features/`, `di/` | 107 | every screen's Cubit on the real data stack; the SearchBloc in fake time (the debounce) and real time (switching, live results); the views with mocked Cubits; the composition root |
-| `app/` | 81 | first launch, habit, routine, goal, badge and search flows end to end (the first completion celebrated where you are; the demo's badges celebrated together), and the accessibility tour |
+| `domain/` | 204 | the engine: every schedule and streak edge, perfect days, the rate, goal windows and progress, today's routines; every badge rule at its edge; the consistency score; the analytics series; **the notification planner** (done or skipped today → no reminder, all done → no nudge, weekdays only, a met week, the 7-day horizon, the 60 cap, past times, ids stable across runs, wall-clock times across a DST change); the use cases' rules, **the scheduler diff** against a fake (cancel stale, schedule new, keep unchanged, permission revoked, one sync at a time), **backups** (due a day after the last, failures reported) and **reset** |
+| `data/` | 57 | the demo mapper, the shipped demo as of every weekday, a round trip of every field through the database and **through the backup JSON**, the repositories, **settings** (every field saved, only what changed written, reloaded from another isolate) |
+| `core/` | 149 | the schema's constraints and cascades; the DAOs (and **reset** in one go); the midnight clock and the debounce; navigation; the design system |
+| `features/`, `di/` | 141 | every screen's Cubit on the real data stack (**Settings' tools**, Today's **coming-up reminders** moving on by themselves); the SearchBloc in fake and real time; the views with mocked Cubits (**Settings**: the denied card, the radio list and icon-less switches at large text, the plan sheet); the composition root |
+| `background/` | 15 | **`RunBackgroundTasks`** (badges, backup only when due, the plan; one failing step stops nothing), **the entry points' dispatch** (the maintenance task, iOS's fetch, an unknown task, a graph that fails to open, "Mark done"), parsing taps and actions |
+| `app/` | 101 | the flows end to end (**a notification tap opening its habit, cold and warm; "Mark done"; notifications on, denied, and revoked while away; dark mode app-wide; the default reminder; back up, reset, run the background tasks, show the plan**), and the accessibility tour |
 
 - **Navigation:** every rule of the first-launch gate; typed locations; the app on its real DI graph (first launch, each tab, the drawer over every tab, each drawer screen and Back, Search from the app bars, the habit form from both "New habit" buttons and over its habit, the routine editor, deep links with a Close button, an unknown location).
 - **Design system:** the themes, and WCAG AA contrast of every status color (done, skipped, missed, streak) on the page, cards and filled fields, and of all eight habit colors with their text, in both themes.
-- **The accessibility tour:** Welcome (also after a failed demo), the drawer and every screen, with the demo where it has content (Today, Habits, a counted and a weekly habit's page, the forms with their errors, Routines and the editor, Goals and the goal sheet, Analytics, Achievements, Search with results), in light and dark at 200 % text: no overflow, tap targets ≥ 48 × 48, labels, contrast. The tab labels keep their size at 300 % (a long press shows them, with the full name for Badges).
-- **Mutation checks:** thirty-three behaviours were broken on purpose, and each made a test fail.
-  - Phases 2–4: twenty-three, covering the schema and the demo, the habit engine, goals and routines.
-  - Phase 5's ten:
-    - a badge at 6 days;
-    - a weekly habit's weeks counted as days;
-    - a half-checked morning;
-    - a week of skips as a comeback;
-    - unlocks decided by today's progress;
-    - the score without its double week, or from too little history;
-    - unescaped `LIKE` wildcards;
-    - the watcher without its debounce;
-    - a debounce that keeps its timer.
+- **The accessibility tour:** Welcome (also after a failed demo), the drawer and every screen, with the demo where it has content, plus Settings with notifications on, denied, and the planned notifications, in light and dark at 200 % text: no overflow, tap targets ≥ 48 × 48, labels, contrast. The tab labels keep their size at 300 %.
+- **Mutation checks:** forty-six behaviours were broken on purpose, and each made a test fail.
+  - Phases 2–5: thirty-three, covering the schema and the demo, the habit engine, goals and routines, badges, analytics and search.
+  - Phase 6's thirteen: reminders for a habit already done, past times kept, no cap, rescheduling everything, stale notifications left behind, a revoked permission ignored, every setting rewritten, a backup due a minute late, "Coming up" unfiltered, any background task run, "Mark done" lowering a count, a tap replacing the screen stack, switch icons kept at large text.
 
 CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every pull request. It installs the FVM-pinned Flutter, checks that the committed generated code is up to date and complete, then runs format, analyze and test.
 
@@ -273,8 +292,9 @@ CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every p
 | Navigation | bottom bar + drawer | `TabView` | `StatefulShellRoute` + `NavigationBar` + a `Drawer` |
 | Screen state | ViewModel + StateFlow | `@Observable` | Cubit / Bloc |
 | Storage | Room + DataStore | SwiftData + `@AppStorage` | drift + `SharedPreferencesWithCache` |
+| Reminders | WorkManager → NotificationManager | UNUserNotificationCenter | `flutter_local_notifications`, planned in a 7-day rolling window and diffed |
 | Background work | WorkManager | BGTaskScheduler | `workmanager` (both), in a second isolate |
-| DI | Hilt | `AppEnvironment` | `get_it` + `injectable` |
+| DI | Hilt | `AppEnvironment` | `get_it` + `injectable` (+ a hand-built background graph) |
 
 ---
 
@@ -285,6 +305,7 @@ CI (`.github/workflows/flutter-ci.yml`) runs on every push to `main` and every p
 - [Phase 3 — Habits core](docs/PHASE_3_SUMMARY.md)
 - [Phase 4 — Goals and routines](docs/PHASE_4_SUMMARY.md)
 - [Phase 5 — Achievements, analytics and search](docs/PHASE_5_SUMMARY.md)
+- [Phase 6 — Notifications, background tasks and settings](docs/PHASE_6_SUMMARY.md)
 
 ---
 

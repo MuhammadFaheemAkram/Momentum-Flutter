@@ -7,8 +7,8 @@ import 'package:momentum/domain/model/routine.dart';
 
 part 'user_data.freezed.dart';
 
-/// Everything the user owns, in one value: what the demo loads, and (in
-/// Phase 6) what a backup sends.
+/// Everything the user owns, in one value: what the demo loads, and what a
+/// backup sends.
 @freezed
 abstract class UserData with _$UserData {
   const factory UserData({

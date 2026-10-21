@@ -1,6 +1,7 @@
 import 'package:momentum/domain/calculation/completion_rate.dart';
 import 'package:momentum/domain/calculation/goals.dart';
 import 'package:momentum/domain/calculation/habit_history.dart';
+import 'package:momentum/domain/calculation/notification_plan.dart';
 import 'package:momentum/domain/calculation/perfect_days.dart';
 import 'package:momentum/domain/calculation/routines.dart';
 import 'package:momentum/domain/calculation/streaks.dart';
@@ -72,6 +73,13 @@ TodayOverview buildTodayOverview(
     goals: [
       for (final goal in goals) goalProgress(goal, allHistories, today: today),
     ],
+    reminders: remindersOn([
+      for (final history in histories)
+        if (history.isDue(today) &&
+            !history.isSkippedOn(today) &&
+            !history.isDoneOn(today))
+          history,
+    ], today),
   );
 }
 

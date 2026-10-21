@@ -28,6 +28,11 @@ extension type const TimeOfDayValue._(int minutesSinceMidnight) {
     return TimeOfDayValue(hour, minute);
   }
 
+  /// Settings' defaults, as constants so models can use them in `@Default`.
+  static const nineAm = TimeOfDayValue._(9 * 60);
+  static const eightPm = TimeOfDayValue._(20 * 60);
+  static const nineThirtyPm = TimeOfDayValue._(21 * 60 + 30);
+
   int get hour => minutesSinceMidnight ~/ 60;
 
   int get minute => minutesSinceMidnight % 60;

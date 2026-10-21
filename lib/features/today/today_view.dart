@@ -4,6 +4,7 @@ import 'package:momentum/core/design_system/design_system.dart';
 import 'package:momentum/core/navigation/app_routes.dart';
 import 'package:momentum/domain/calculation/habit_history.dart';
 import 'package:momentum/domain/model/habit_overviews.dart';
+import 'package:momentum/domain/model/planned_notification.dart';
 import 'package:momentum/features/habit_actions/habit_notice.dart';
 import 'package:momentum/features/habit_form/open_habit_form.dart';
 import 'package:momentum/features/shell/shell_drawer_scope.dart';
@@ -12,7 +13,7 @@ import 'package:momentum/features/today/cubit/today_state.dart';
 
 /// Today: the ring for today's due habits, the perfect-day streak, this
 /// week, then today's habits (due ones first, the rest folded away),
-/// today's routines and the goals.
+/// today's routines, the goals, and the reminders coming up.
 class TodayView extends StatelessWidget {
   const TodayView({super.key});
 
@@ -65,7 +66,10 @@ class TodayView extends StatelessWidget {
               child: const Text('New habit'),
             ),
           ),
-          TodayStatus.ready => _Today(overview: state.overview!),
+          TodayStatus.ready => _Today(
+            overview: state.overview!,
+            upcoming: state.upcoming,
+          ),
         },
       ),
     );
@@ -73,9 +77,10 @@ class TodayView extends StatelessWidget {
 }
 
 class _Today extends StatelessWidget {
-  const _Today({required this.overview});
+  const _Today({required this.overview, required this.upcoming});
 
   final TodayOverview overview;
+  final List<PlannedNotification> upcoming;
 
   @override
   Widget build(BuildContext context) {
@@ -150,6 +155,16 @@ class _Today extends StatelessWidget {
               progress: progress,
               today: today,
               onTap: () => const GoalsRoute().push<void>(context),
+            ),
+        ],
+        if (upcoming.isNotEmpty) ...[
+          const SectionHeader('Coming up'),
+          for (final reminder in upcoming)
+            ReminderRow(
+              reminder: reminder,
+              onTap: () =>
+                  HabitDetailRoute(habitId: reminder.habitId!)
+                      .push<void>(context),
             ),
         ],
       ],

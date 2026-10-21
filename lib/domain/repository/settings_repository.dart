@@ -10,4 +10,11 @@ abstract interface class SettingsRepository {
   Stream<AppSettings> watch();
 
   Future<void> setOnboarded({required bool onboarded});
+
+  /// Applies [change] to the current settings, and saves what it changed.
+  Future<void> update(AppSettings Function(AppSettings settings) change);
+
+  /// Reads the settings from the device again, for changes made by the
+  /// background isolate, and publishes them if they differ.
+  Future<void> reload();
 }
